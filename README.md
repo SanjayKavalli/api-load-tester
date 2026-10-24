@@ -1,6 +1,6 @@
 # Generic Go API Load Tester — User & Testing Team Guide
 
-Open the colorful [HTML user manual](docs/USER-MANUAL.html) for a short step-by-step guide.
+Open the [rendered HTML user manual](https://sanjaykavalli.github.io/api-load-tester/docs/USER-MANUAL.html) for a short step-by-step guide.
 
 This guide explains how to configure, build, run, and share the load tester on Windows. It is written for developers and QA/testing team members.
 
