@@ -1,0 +1,48 @@
+{
+  "duration": "2m",
+  "rate": 1,
+  "burst_size": 100,
+  "max_inflight": 300,
+  "timeout": "45s",
+  "execution_mode": "coordinated",
+  "shared_dataset_file": "../../data/test-patients.json",
+  "shared_dataset_mode": "fixed",
+  "scenarios": [
+    {
+      "name": "role_a_update",
+      "weight": 1,
+      "method": "PUT",
+      "url": "https://REPLACE-API/resource",
+      "body_file": "../../data/patient-request-template.json",
+      "overlay_dataset_keys": true,
+      "token_env": "ROLE_A_TOKEN",
+      "token_file": "../../secrets/role-a.token",
+      "headers": {"Accept": "application/json"},
+      "expected_statuses": [200, 202]
+    },
+    {
+      "name": "role_b_update",
+      "weight": 1,
+      "method": "PATCH",
+      "url": "https://REPLACE-API/resource",
+      "body_file": "../../data/patient-request-template.json",
+      "overlay_dataset_keys": true,
+      "token_env": "ROLE_B_TOKEN",
+      "token_file": "../../secrets/role-b.token",
+      "headers": {"Accept": "application/json"},
+      "expected_statuses": [200, 202]
+    },
+    {
+      "name": "role_c_read",
+      "weight": 1,
+      "method": "GET",
+      "url": "https://REPLACE-API/resource",
+      "body_file": "../../data/patient-request-template.json",
+      "overlay_dataset_keys": true,
+      "token_env": "ROLE_C_TOKEN",
+      "token_file": "../../secrets/role-c.token",
+      "headers": {"Accept": "application/json"},
+      "expected_statuses": [200]
+    }
+  ]
+}

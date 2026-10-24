@@ -1,0 +1,40 @@
+{
+  "duration": "2m",
+  "rate": 1,
+  "burst_size": 100,
+  "max_inflight": 200,
+  "timeout": "45s",
+  "execution_mode": "coordinated",
+  "shared_dataset_file": "../../data/test-patients.json",
+  "shared_dataset_mode": "cycle",
+  "scenarios": [
+    {
+      "name": "service_a_update",
+      "weight": 1,
+      "method": "PUT",
+      "url": "https://REPLACE-API-A/resource",
+      "body_file": "../../data/patient-request-template.json",
+      "overlay_dataset_keys": true,
+      "token_env": "SERVICE_A_TOKEN",
+      "token_file": "../../secrets/service-a.token",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expected_statuses": [200, 202]
+    },
+    {
+      "name": "service_b_update",
+      "weight": 1,
+      "method": "PATCH",
+      "url": "https://REPLACE-API-B/resource",
+      "body_file": "../../data/patient-request-template.json",
+      "overlay_dataset_keys": true,
+      "token_env": "SERVICE_B_TOKEN",
+      "token_file": "../../secrets/service-b.token",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expected_statuses": [200, 202]
+    }
+  ]
+}

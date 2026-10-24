@@ -1,0 +1,24 @@
+{
+  "duration": "2m",
+  "rate": 1,
+  "burst_size": 100,
+  "max_inflight": 100,
+  "timeout": "45s",
+  "execution_mode": "weighted",
+  "scenarios": [
+    {
+      "name": "single_api_request",
+      "weight": 1,
+      "method": "POST",
+      "url": "https://REPLACE-API/resource",
+      "body_file": "../../data/patient-request-template.json",
+      "overlay_dataset_keys": false,
+      "token_env": "RESOURCE_API_TOKEN",
+      "token_file": "../../secrets/resource-api.token",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "expected_statuses": [200, 201, 202]
+    }
+  ]
+}

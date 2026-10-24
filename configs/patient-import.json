@@ -1,0 +1,43 @@
+{
+    "duration":  "1m",
+    "rate":  1,
+    "burst_size":  100,
+    "max_inflight":  100,
+    "timeout":  "45s",
+    "scenarios":  [
+                      {
+                          "name":  "new_patient_import",
+                          "weight":  60,
+                          "method":  "POST",
+                          "url":  "https://YOUR-TEST-HOST/YOUR-ENDPOINT",
+                          "body_file":  "../data/patient-request-template.json",
+                          "overlay_dataset_keys":  false,
+                          "headers":  {
+                                          "Accept":  "application/json"
+                                      },
+                          "expected_statuses":  [
+                                                    200,
+                                                    201,
+                                                    202
+                                                ]
+                      },
+                      {
+                          "name":  "existing_patient_import",
+                          "weight":  40,
+                          "method":  "POST",
+                          "url":  "https://YOUR-TEST-HOST/YOUR-ENDPOINT",
+                          "body_file":  "../data/patient-request-template.json",
+                          "dataset_file":  "../data/test-patients.json",
+                          "dataset_mode":  "random",
+                          "overlay_dataset_keys":  true,
+                          "headers":  {
+                                          "Accept":  "application/json"
+                                      },
+                          "expected_statuses":  [
+                                                    200,
+                                                    201,
+                                                    202
+                                                ]
+                      }
+                  ]
+}

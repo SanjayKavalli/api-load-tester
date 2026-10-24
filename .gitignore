@@ -1,0 +1,16 @@
+secrets/
+responses/
+*.log
+*.exe
+*.test
+coverage.out
+coverage.html
+/.env
+/.env.*
+!/.env.example
+/.vscode/
+/.idea/
+Thumbs.db
+.DS_Store
+postman-request-body.json
+*.token

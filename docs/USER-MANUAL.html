@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Go API Load Tester - User Manual</title>
+  <style>
+    :root {
+      --navy: #102a43;
+      --blue: #1d4ed8;
+      --cyan: #0891b2;
+      --green: #15803d;
+      --orange: #c2410c;
+      --red: #b91c1c;
+      --purple: #7e22ce;
+      --ink: #243b53;
+      --muted: #627d98;
+      --line: #d9e2ec;
+      --paper: #f7fafc;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 48%, #ecfeff 100%);
+      font-family: "Segoe UI", Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 48px 24px;
+      color: var(--white);
+      background: linear-gradient(120deg, var(--navy), var(--blue), var(--cyan));
+    }
+
+    header .wrap, main, footer {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    h1 { margin: 0 0 8px; font-size: clamp(2rem, 5vw, 3.5rem); }
+    h2 { color: var(--navy); margin-top: 0; }
+    h3 { color: var(--blue); margin-bottom: 6px; }
+    p { margin: 6px 0 12px; }
+    a { color: var(--blue); font-weight: 600; }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+    }
+
+    nav .links {
+      display: flex;
+      gap: 8px;
+      width: min(1120px, 100%);
+      margin: auto;
+      overflow-x: auto;
+    }
+
+    nav a {
+      padding: 7px 12px;
+      color: var(--navy);
+      text-decoration: none;
+      white-space: nowrap;
+      border-radius: 999px;
+      background: #eaf2ff;
+    }
+
+    main { padding: 28px 0 48px; }
+    section {
+      margin: 20px 0;
+      padding: 24px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(16, 42, 67, 0.08);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      padding: 16px;
+      border-left: 5px solid var(--blue);
+      border-radius: 10px;
+      background: var(--paper);
+    }
+
+    .green { border-color: var(--green); }
+    .orange { border-color: var(--orange); }
+    .purple { border-color: var(--purple); }
+    .red { border-color: var(--red); }
+    .cyan { border-color: var(--cyan); }
+
+    .step {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      align-items: start;
+      margin: 12px 0;
+    }
+
+    .number {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .note, .warn, .success {
+      margin: 12px 0;
+      padding: 12px 14px;
+      border-radius: 9px;
+      font-weight: 600;
+    }
+
+    .note { color: #0e7490; background: #ecfeff; border: 1px solid #a5f3fc; }
+    .warn { color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; }
+    .success { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; }
+
+    code {
+      color: #f8fafc;
+      background: #172554;
+      border-radius: 5px;
+      padding: 2px 6px;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      color: #e0f2fe;
+      background: #0f172a;
+      border-radius: 10px;
+      border-left: 5px solid var(--cyan);
+    }
+
+    pre code { padding: 0; color: inherit; background: transparent; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th { color: var(--white); background: var(--navy); }
+    tr:nth-child(even) { background: #f8fafc; }
+
+    .tag {
+      display: inline-block;
+      margin: 2px 4px 2px 0;
+      padding: 3px 8px;
+      color: var(--white);
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: 999px;
+      background: var(--purple);
+    }
+
+    .checklist { padding-left: 22px; }
+    .checklist li { margin: 7px 0; }
+
+    footer {
+      padding: 20px 0 40px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media print {
+      nav { display: none; }
+      body { background: white; }
+      section { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Go API Load Tester</h1>
+      <p>Quick user manual: configure, authenticate, run, inspect, and scale.</p>
+    </div>
+  </header>
+
+  <nav>
+    <div class="links">
+      <a href="#quick-start">Quick start</a>
+      <a href="#choose-test">Choose test</a>
+      <a href="#configure">Configure</a>
+      <a href="#tokens">Tokens</a>
+      <a href="#run">Run</a>
+      <a href="#responses">Responses</a>
+      <a href="#scale">Scale safely</a>
+      <a href="#troubleshoot">Troubleshoot</a>
+    </div>
+  </nav>
+
+  <main>
+    <section id="quick-start">
+      <h2>Quick start</h2>
+      <div class="step"><div class="number">1</div><div><b>Choose an example.</b><p>Copy the closest JSON from <code>configs\examples</code>.</p></div></div>
+      <div class="step"><div class="number">2</div><div><b>Edit the API details.</b><p>Set URL, method, body file, expected statuses, and dataset.</p></div></div>
+      <div class="step"><div class="number">3</div><div><b>Add tokens.</b><p>Use one local token file or environment variable per scenario.</p></div></div>
+      <div class="step"><div class="number">4</div><div><b>Run low load first.</b><p>Start with 10 users for 10 seconds, then increase.</p></div></div>
+      <div class="step"><div class="number">5</div><div><b>Open the response file.</b><p>Check failures, timeouts, latency, statuses, and dropped arrivals.</p></div></div>
+      <div class="warn">Run only against an approved test or staging environment.</div>
+    </section>
+
+    <section id="choose-test">
+      <h2>Choose the test</h2>
+      <div class="grid">
+        <div class="card green">
+          <h3>Weighted 60/40</h3>
+          <p>Create about 60% and update about 40%.</p>
+          <a href="../configs/examples/weighted-create-update-60-40.json">Config</a> |
+          <a href="scenarios/weighted-create-update-60-40.md">Steps</a>
+        </div>
+        <div class="card cyan">
+          <h3>One API burst</h3>
+          <p>Send 100 requests to one endpoint together.</p>
+          <a href="../configs/examples/single-api-100-burst.json">Config</a> |
+          <a href="scenarios/single-api-100-burst.md">Steps</a>
+        </div>
+        <div class="card red">
+          <h3>One shared record</h3>
+          <p>Maximum contention: every actor targets one record.</p>
+          <a href="../configs/examples/100-users-one-record.json">Config</a> |
+          <a href="scenarios/100-users-one-record.md">Steps</a>
+        </div>
+        <div class="card orange">
+          <h3>Random records</h3>
+          <p>Each virtual-user group can select another record.</p>
+          <a href="../configs/examples/100-users-many-records.json">Config</a> |
+          <a href="scenarios/100-users-many-records.md">Steps</a>
+        </div>
+        <div class="card purple">
+          <h3>Cycle records</h3>
+          <p>Rotate records predictably for repeatable runs.</p>
+          <a href="../configs/examples/coordinated-cycle-records.json">Config</a> |
+          <a href="scenarios/coordinated-cycle-records.md">Steps</a>
+        </div>
+        <div class="card">
+          <h3>Three roles</h3>
+          <p>Run three authenticated scenarios against one record.</p>
+          <a href="../configs/examples/coordinated-three-roles-one-record.json">Config</a> |
+          <a href="scenarios/coordinated-three-roles-one-record.md">Steps</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="configure">
+      <h2>Configuration cheat sheet</h2>
+      <table>
+        <thead><tr><th>Setting</th><th>Short note</th></tr></thead>
+        <tbody>
+          <tr><td><code>duration</code></td><td>How long bursts continue.</td></tr>
+          <tr><td><code>rate</code></td><td>Bursts started per second.</td></tr>
+          <tr><td><code>burst_size</code></td><td>Virtual users prepared for each burst.</td></tr>
+          <tr><td><code>max_inflight</code></td><td>Maximum requests allowed to run together.</td></tr>
+          <tr><td><code>timeout</code></td><td>Maximum wait for one HTTP request.</td></tr>
+          <tr><td><code>weighted</code></td><td>Each virtual user runs one selected scenario.</td></tr>
+          <tr><td><code>coordinated</code></td><td>Each virtual user runs every scenario together.</td></tr>
+          <tr><td><code>fixed</code></td><td>Always use the first shared record.</td></tr>
+          <tr><td><code>random</code></td><td>Select a shared record randomly per virtual user.</td></tr>
+          <tr><td><code>cycle</code></td><td>Rotate shared records in order.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Concurrency formula</h3>
+      <pre><code>weighted:    max_inflight >= burst_size
+coordinated: max_inflight >= burst_size x scenario count</code></pre>
+      <div class="note">Example: 100 users x 3 coordinated scenarios needs at least 300 in-flight slots.</div>
+    </section>
+
+    <section id="data">
+      <h2>Request body and data</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Body template</h3>
+          <p>Change <code>body_file</code> when APIs need different JSON structures.</p>
+        </div>
+        <div class="card green">
+          <h3>Dataset overlay</h3>
+          <p>Set <code>overlay_dataset_keys</code> to true to replace matching template fields.</p>
+        </div>
+        <div class="card orange">
+          <h3>Shared dataset</h3>
+          <p>Use <code>shared_dataset_file</code> so coordinated scenarios receive the same entity.</p>
+        </div>
+      </div>
+      <div class="warn">Dataset keys not present in the body template are ignored.</div>
+    </section>
+
+    <section id="tokens">
+      <h2>Tokens</h2>
+      <p><span class="tag">First</span> Scenario environment variable <span class="tag">Fallback</span> Scenario token file</p>
+      <pre><code>New-Item -ItemType Directory -Path .\secrets -Force
+Set-Content .\secrets\api-a.token "&lt;API-A-JWT&gt;"
+Set-Content .\secrets\api-b.token "&lt;API-B-JWT&gt;"</code></pre>
+      <p>Optional environment override:</p>
+      <pre><code>$env:API_A_TOKEN = "&lt;API-A-JWT&gt;"
+$env:API_B_TOKEN = "&lt;API-B-JWT&gt;"</code></pre>
+      <pre><code>"token_env": "API_A_TOKEN",
+"token_file": "../../secrets/api-a.token"</code></pre>
+      <div class="warn">Never save JWT values directly in shared JSON configs, logs, or documentation.</div>
+    </section>
+
+    <section id="run">
+      <h2>Run</h2>
+      <h3>Safe first run</h3>
+      <pre><code>.\loadtest.exe `
+  -config .\configs\examples\100-users-one-record.json `
+  -log-request-body=false `
+  -log-response-body=false</code></pre>
+      <div class="success">Request and response body logging is off, but response files are still created.</div>
+      <h3>Disable response files only when required</h3>
+      <pre><code>.\loadtest.exe -config .\configs\patient-import.json -response-dir ""</code></pre>
+    </section>
+
+    <section id="responses">
+      <h2>Responses</h2>
+      <p>Each run creates <code>responses\responses_YYYYMMDD-HHMMSS.json</code>.</p>
+      <pre><code>Get-ChildItem .\responses\*.json |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1</code></pre>
+      <div class="grid">
+        <div class="card"><b>summary.completed</b><p>Requests that finished.</p></div>
+        <div class="card red"><b>summary.failed</b><p>Unexpected statuses and network failures.</p></div>
+        <div class="card orange"><b>dropped_arrivals</b><p>Requests skipped because concurrency was full.</p></div>
+        <div class="card purple"><b>duration_ms</b><p>Compare slow scenarios and lock waits.</p></div>
+        <div class="card cyan"><b>status / error</b><p>Check timeouts, conflicts, and server errors.</p></div>
+        <div class="card green"><b>body</b><p>Check API-level success and returned entity data.</p></div>
+      </div>
+    </section>
+
+    <section id="scale">
+      <h2>Scale safely</h2>
+      <table>
+        <thead><tr><th>Step</th><th>Users</th><th>Duration</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>Smoke</td><td>1</td><td>5s</td><td>Verify URL, token, body, and response.</td></tr>
+          <tr><td>Small</td><td>10</td><td>10s</td><td>Check errors and dropped arrivals.</td></tr>
+          <tr><td>Medium</td><td>25-50</td><td>15-30s</td><td>Watch P95/P99 and database locks.</td></tr>
+          <tr><td>Target</td><td>100</td><td>Approved duration</td><td>Monitor API, database, CPU, and pools.</td></tr>
+        </tbody>
+      </table>
+      <div class="note">Increase one setting at a time so failures have a clear cause.</div>
+      <div class="warn">A client timeout can show a deadlock symptom; confirm the cause using API and database logs.</div>
+    </section>
+
+    <section id="troubleshoot">
+      <h2>Fast troubleshooting</h2>
+      <ul class="checklist">
+        <li><b>403:</b> check token, proxy, VPN, WAF, and IP policy.</li>
+        <li><b>401:</b> refresh the JWT and verify the scenario token source.</li>
+        <li><b>Dropped arrivals:</b> increase <code>max_inflight</code> or reduce burst size.</li>
+        <li><b>Body errors:</b> verify JSON, placeholders, dataset fields, and file paths.</li>
+        <li><b>Slow responses:</b> inspect P95/P99, DB locks, connection pools, and server CPU.</li>
+        <li><b>No response file:</b> check <code>-response-dir</code> and application errors.</li>
+        <li><b>Wrong scenario ratio:</b> weighted results are approximate in short tests.</li>
+      </ul>
+    </section>
+
+    <section id="final-check">
+      <h2>Before every test</h2>
+      <ul class="checklist">
+        <li>Approved environment and load level.</li>
+        <li>Correct URL, method, body, dataset, and expected statuses.</li>
+        <li>Valid per-scenario token.</li>
+        <li>Correct execution and shared dataset mode.</li>
+        <li>Enough in-flight capacity for the burst.</li>
+        <li>API and database monitoring enabled.</li>
+        <li>Plan to protect or delete response files containing sensitive data.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    Go API Load Tester - concise operational guide
+  </footer>
+</body>
+</html>
