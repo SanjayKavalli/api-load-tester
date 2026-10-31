@@ -2,7 +2,9 @@
 
 **Developed by [Sanjay Kavalli](https://github.com/SanjayKavalli)**
 
-Open the [rendered HTML user manual](https://sanjaykavalli.github.io/api-load-tester/docs/USER-MANUAL.html) for a short step-by-step guide.
+Read the [setup and testing guide](docs/TESTING-GUIDE.md) in this repository. The [HTML user manual](https://sanjaykavalli.github.io/api-load-tester/docs/USER-MANUAL.html) is hosted on GitHub Pages and may require access to the private site.
+
+GitHub Pages publishes documentation and configuration examples only; it does not host the interactive Go application. Run the browser interface locally using the steps below.
 
 ## Browser Interface
 
