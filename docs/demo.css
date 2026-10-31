@@ -6,15 +6,35 @@ a { color: var(--green); }
 header > a:last-child { margin-left: auto; }
 .brand { color: #172b29; font-weight: 800; font-size: 24px; text-decoration: none; }
 .brand span { color: var(--green); }
+.brand-lockup { display: flex; flex-direction: column; gap: 5px; }
+.author-credit { font-size: 11px; color: var(--muted); }
+.author-credit a { font-weight: 600; text-decoration: none; }
 .badge { font-size: 11px; font-weight: 700; background: #fff0c2; color: #624d09; padding: 6px 8px; }
 main { max-width: 1160px; margin: auto; padding: 0 24px; }
 .intro { padding: 24px 0 18px; }
 h1 { font-size: 28px; margin: 0 0 10px; }
+h1 span { color: var(--green); }
+.eyebrow { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
 p { font-size: 14px; line-height: 1.6; color: var(--muted); margin: 10px 0; overflow-wrap: anywhere; }
 .guide { display: flex; gap: 20px; align-items: center; justify-content: space-between; border-left: 4px solid var(--green); background: #e7f2eb; padding: 14px 18px; }
 #step-count { color: var(--green); font-size: 11px; font-weight: 700; }
 .guide p { margin: 6px 0 0; color: #172b29; }
 .band { padding: 24px 0; border-bottom: 1px solid var(--line); }
+.workspace { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 28px; }
+.configuration, .workspace-side { min-width: 0; }
+.workspace-side { border-left: 1px solid var(--line); padding-left: 24px; }
+.section-title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0 16px; }
+.section-title h2 { margin: 0; }
+.band > .section-title:first-child { margin-top: 0; }
+.setup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.setup-actions button, .section-title > button, .feature-controls button { min-height: 32px; padding: 6px 10px; font-size: 12px; }
+.feature-notice { border-left: 3px solid #d08117; padding: 10px 14px; background: #fff0c2; color: #624d09; }
+.tip-wrap { display: inline-flex; position: relative; max-width: 100%; }
+.tooltip { display: none; position: absolute; z-index: 5; top: calc(100% + 6px); left: 0; width: min(280px, calc(100vw - 64px)); padding: 12px; border: 1px solid #9dafaa; border-radius: 4px; background: white; color: #172b29; box-shadow: 0 4px 12px #172b2920; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.tip-wrap:hover .tooltip, .tip-wrap:focus-within .tooltip { display: block; }
+.workspace-side .tip-wrap .tooltip, .section-title > .tip-wrap .tooltip, .setup-actions .tip-wrap .tooltip { left: auto; right: 0; }
+button[aria-disabled="true"] { color: var(--muted); border-style: dashed; cursor: help; }
+.feature-controls { gap: 8px; }
 h2 { font-size: 14px; color: var(--green); margin: 24px 0 16px; display: flex; gap: 14px; }
 .band > h2:first-child { margin-top: 0; }
 h2 span { font-size: 18px; color: #172b29; }
@@ -28,7 +48,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 button:focus-visible, select:focus-visible, summary:focus-visible, pre:focus-visible { outline: 3px solid #d08117; outline-offset: 3px; }
 .profiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .profiles button { text-align: left; min-height: 76px; }
-.profiles b { display: block; font-size: 14px; }
+.profiles b { display: block; font-size: 13px; }
 .profiles small { display: block; margin-top: 7px; color: var(--muted); }
 .profiles [aria-pressed="true"] { border-color: var(--green); background: #e7f2eb; }
 .tour-target { outline: 3px solid #d08117; outline-offset: 3px; }
@@ -60,6 +80,10 @@ progress { width: 100%; height: 8px; accent-color: var(--green); }
 .inspector section { min-width: 0; }
 .failed { color: #a33737; }
 footer { padding: 16px 0 30px; }
+@media (max-width: 1000px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .workspace-side { border-left: 0; padding-left: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+}
 @media (max-width: 700px) {
   main { padding: 0 16px; }
   header { padding: 14px 16px; gap: 12px; }
@@ -67,6 +91,10 @@ footer { padding: 16px 0 30px; }
   .profiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .settings, .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .inspector { grid-template-columns: minmax(0, 1fr); }
+  .workspace-side { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .section-title { align-items: flex-start; }
+  .tip-wrap .tooltip { position: fixed; top: auto; bottom: 16px; left: 16px; right: 16px; width: auto; margin: 0; }
+  .workspace-side .tip-wrap .tooltip, .section-title > .tip-wrap .tooltip, .setup-actions .tip-wrap .tooltip { left: 16px; right: 16px; }
   .guide { align-items: flex-start; gap: 12px; padding: 12px; }
   .guide button { flex-shrink: 0; padding: 8px; }
   #schedule-field select { display: block; margin: 8px 0 0; width: 100%; }

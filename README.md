@@ -22,6 +22,8 @@ Scenario tours: [single API, 100 users](https://sanjaykavalli.github.io/api-load
 
 Everything in the demo is simulated: dummy `.invalid` endpoints, synthetic patient data, canned responses, and illustrative latency/conflict results. It sends no API requests and does not execute the Go load-test engine. Real testing still requires the local application and authorized targets.
 
+The tour follows the Classic workspace arrangement and includes the developer credit. **Export setup** and **Import setup** save and restore the tour's use case and burst schedule using a demo-only JSON format, not a real Load Lab setup or CLI configuration. Dummy preview samples can also be downloaded or copied. Dashed controls represent local-app-only features; hover, focus, or tap them for an explanation of API editing, uploads, field rules, authentication, recording, and analysis.
+
 GitHub Pages publishes this tour with the documentation after changes are pushed to `main` and the Pages workflow succeeds. Private Pages sites may require access. For an offline tour, open [docs/DEMO.html](docs/DEMO.html) from a local checkout with its neighboring CSS and JavaScript files; GitHub's source view does not execute HTML.
 
 ## Browser Interface

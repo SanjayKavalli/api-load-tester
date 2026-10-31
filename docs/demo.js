@@ -22,6 +22,18 @@ let planned = [];
 let sent = [];
 let phase = "choose";
 const json = (value) => JSON.stringify(value, null, 2);
+function notice(text) {
+  byId("feature-notice").textContent = text;
+  byId("feature-notice").hidden = false;
+}
+function downloadJSON(value, filename) {
+  const url = URL.createObjectURL(new Blob([json(value)], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 function guide(next) {
   phase = next;
   document.querySelectorAll(".tour-target").forEach((element) => element.classList.remove("tour-target"));
@@ -83,6 +95,9 @@ function loadCase(key) {
   byId("start").disabled = true;
   byId("stop").disabled = true;
   byId("download").disabled = true;
+  byId("download-samples").disabled = true;
+  byId("copy-preview").disabled = true;
+  byId("feature-notice").hidden = true;
   byId("preview-note").textContent = "";
   byId("payload").textContent = "Select the highlighted traffic option to begin.";
   byId("request").textContent = "Select a result to inspect its request.";
@@ -188,6 +203,8 @@ byId("preview").addEventListener("click", () => {
   byId("payload").textContent = json(current.apis.map((scenario, index) => makeRecord(scenario, 0, index + 1, 1).request));
   byId("preview-note").textContent = "One dummy request per API. GET requests have no JSON body.";
   byId("start").disabled = false;
+  byId("download-samples").disabled = false;
+  byId("copy-preview").disabled = false;
   guide("start");
 });
 byId("start").addEventListener("click", () => {
@@ -215,12 +232,59 @@ byId("start").addEventListener("click", () => {
 byId("stop").addEventListener("click", () => finish(true));
 byId("download").addEventListener("click", () => {
   const report = { simulated: true, notice: "Dummy requests and responses. Not real performance measurements.", use_case: byId("use-case").value, mode: current.mode, schedule: current.mode === "multi_api_burst" ? byId("schedule").value : "illustrative sample", outcome: byId("run-state").textContent, total: sent.length, successful: sent.filter((record) => record.status < 400).length, failed: sent.filter((record) => record.status >= 400).length, records: sent };
-  const url = URL.createObjectURL(new Blob([json(report)], { type: "application/json" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `load-lab-demo-${byId("use-case").value}.json`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadJSON(report, `load-lab-demo-${byId("use-case").value}.json`);
+});
+document.querySelectorAll("[data-info]").forEach((button, index) => {
+  const wrap = document.createElement("span");
+  wrap.className = "tip-wrap";
+  const tip = document.createElement("span");
+  tip.className = "tooltip";
+  tip.id = `feature-tip-${index}`;
+  tip.setAttribute("role", "tooltip");
+  tip.textContent = button.dataset.info;
+  button.setAttribute("aria-describedby", tip.id);
+  button.title = button.dataset.info;
+  button.replaceWith(wrap);
+  wrap.append(button, tip);
+  if (button.getAttribute("aria-disabled") === "true") button.addEventListener("click", () => notice(button.dataset.info));
+});
+byId("export-setup").addEventListener("click", () => {
+  downloadJSON({ format: "load-lab-demo-setup", version: 1, simulated: true, use_case: byId("use-case").value, burst_schedule: current.mode === "multi_api_burst" ? byId("schedule").value : "once" }, "load-lab-demo-setup.json");
+  notice("Demo setup exported: selected use case and burst schedule only. Import it here to restore the tour; use the local app for real Load Lab setups.");
+});
+byId("import-setup").addEventListener("click", () => byId("setup-file").click());
+byId("setup-file").addEventListener("change", async () => {
+  const file = byId("setup-file").files[0];
+  byId("setup-file").value = "";
+  if (!file) return;
+  try {
+    if (file.size > 16384) throw new Error("Demo setups must be 16 KiB or smaller.");
+    const setup = JSON.parse(await file.text());
+    if (!setup || setup.format !== "load-lab-demo-setup" || setup.version !== 1 || setup.simulated !== true || !Object.hasOwn(cases, setup.use_case) || !["once", "repeat"].includes(setup.burst_schedule)) throw new Error("Choose a demo setup exported from this tour. Real Load Lab setups and CLI configs require the local application.");
+    if (setup.burst_schedule === "repeat" && setup.use_case !== "multi_api_burst") throw new Error("Repeated bursts require the Multi-API Burst demo.");
+    history.replaceState(null, "", `#${setup.use_case}`);
+    loadCase(setup.use_case);
+    byId("schedule").value = setup.burst_schedule;
+    chart();
+    notice("Demo setup imported. Click the highlighted traffic option to continue. No real payloads or credentials were imported.");
+  } catch (error) {
+    notice(`Import failed; current tour unchanged. ${error.message}`);
+  }
+});
+byId("download-samples").addEventListener("click", () => downloadJSON({ simulated: true, samples: JSON.parse(byId("payload").textContent) }, "load-lab-demo-samples.json"));
+byId("copy-preview").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(byId("payload").textContent);
+    notice("Dummy payload copied.");
+  } catch {
+    const range = document.createRange();
+    range.selectNodeContents(byId("payload"));
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    byId("payload").focus();
+    notice("Clipboard unavailable. The dummy payload is selected; copy it with your browser's copy command.");
+  }
 });
 window.addEventListener("hashchange", () => loadCase(location.hash.slice(1)));
 loadCase(location.hash.slice(1));

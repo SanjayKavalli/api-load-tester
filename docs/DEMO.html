@@ -9,10 +9,13 @@
   <script src="demo.js" defer></script>
 </head>
 <body>
-  <header><a class="brand" href="DEMO.html">LOAD<span>LAB</span></a><span class="badge">SIMULATED DEMO</span><a href="USER-MANUAL.html">User manual</a></header>
+  <header><div class="brand-lockup"><a class="brand" href="DEMO.html">LOAD<span>LAB</span></a><span class="author-credit">Developed by <a href="https://github.com/SanjayKavalli" target="_blank" rel="noopener">Sanjay Kavalli</a></span></div><span class="badge">SIMULATED DEMO</span><a href="USER-MANUAL.html">User manual</a></header>
   <main>
-    <section class="intro"><h1>API testing workspace</h1><p>Dummy data only. No API requests, credentials, or Go server. Results are illustrative, not performance measurements.</p></section>
+    <section class="intro"><div class="eyebrow">TEST WORKSPACE / GUIDED DEMO</div><h1>Build the traffic.<br><span>Control the data.</span></h1><p>Dummy data only. No API requests, credentials, or Go server. Results are illustrative, not performance measurements.</p></section>
     <aside class="guide" aria-label="Guided tour"><div><span id="step-count">STEP 1 OF 4</span><p id="instruction" role="status" aria-live="polite"></p></div><button id="restart" type="button" title="Restart this tour">Restart tour</button></aside>
+    <p id="feature-notice" class="feature-notice" role="status" aria-live="polite" hidden></p>
+    <div class="workspace">
+    <div class="configuration">
     <section class="band">
       <label class="case-label" for="use-case">Use case</label>
       <select id="use-case">
@@ -32,7 +35,11 @@
           <option value="coordinated-three-roles-one-record">Three roles / one shared record</option>
         </optgroup>
       </select>
-      <h2>01 <span>Traffic profile</span></h2>
+      <div class="section-title"><h2>01 <span>Traffic profile</span></h2><div class="setup-actions">
+        <button id="import-setup" type="button" data-info="Import a demo setup JSON to restore its use case and burst schedule. Real Load Lab bundles and CLI configs must be imported in the local application.">Import setup</button>
+        <input id="setup-file" type="file" accept=".json,application/json" aria-label="Demo setup file" hidden>
+        <button id="export-setup" type="button" data-info="Export this tour's use case and burst schedule as a demo-only JSON file. This is not a real Load Lab setup or CLI config and contains no credentials.">Export setup</button>
+      </div></div>
       <div class="profiles" role="group" aria-label="Traffic profile">
         <button type="button" data-mode="normal" aria-pressed="false"><b>Normal</b><small>Steady traffic</small></button>
         <button type="button" data-mode="burst" aria-pressed="false"><b>Burst</b><small>Simultaneous users</small></button>
@@ -44,19 +51,52 @@
       <dl class="settings"><div><dt>Example users / group</dt><dd id="users"></dd></div><div><dt>APIs</dt><dd id="api-count"></dd></div><div><dt>Record selection</dt><dd id="record-mode"></dd></div><div><dt>Traffic</dt><dd id="traffic"></dd></div></dl>
       <label id="schedule-field" hidden>Burst schedule <select id="schedule"><option value="once">Single burst</option><option value="repeat">Repeated bursts (2 groups, 1s apart)</option></select></label>
       <canvas id="traffic-chart" width="960" height="100" role="img" aria-label="Illustrative traffic pattern"></canvas>
+      <div class="actions feature-controls"><button type="button" aria-disabled="true" data-info="Local app only: edit duration, bursts per second, users per burst, max in flight, and request timeout. Match burst sizes concurrency for a full Multi-API Burst group. This tour uses shortened fixed workloads, not real load-test timing or concurrency.">Edit traffic settings / Match burst</button></div>
     </section>
     <section class="band">
-      <h2>02 <span>Dummy API scenarios</span></h2>
+      <div class="section-title"><h2>02 <span>API scenarios</span></h2><button type="button" aria-disabled="true" data-info="Local app only: add independent APIs with their own URL, method, percentage, headers, expected statuses, and payload. This tour uses fixed dummy APIs for each use case.">+ Add scenario</button></div>
       <div class="table-scroll"><table><thead><tr><th>API</th><th>Method / target</th><th>Allocation</th></tr></thead><tbody id="apis"></tbody></table></div>
-      <details><summary>Dummy dataset and field rules</summary><pre id="dataset"></pre><p id="rules"></p></details>
+      <div class="actions feature-controls">
+        <button type="button" aria-disabled="true" data-info="Local app only: upload a JSON object or edit the request body. The tour keeps its canned patient payloads to avoid importing real or sensitive data.">Upload / edit JSON body</button>
+        <button type="button" aria-disabled="true" data-info="Local app only: upload a scenario or shared JSON dataset, then choose fixed, cycle, or random selection and dataset overlay. This tour uses three dummy records.">Upload dataset</button>
+        <button type="button" aria-disabled="true" data-info="Local app only: configure request headers, bearer tokens, and expected HTTP statuses. Do not enter real credentials into this demo; its requests are never sent.">Headers / authentication</button>
+      </div>
+      <details><summary>Dummy dataset</summary><pre id="dataset"></pre></details>
+    </section>
+    <section class="band">
+      <div class="section-title"><h2>03 <span>Field rules</span></h2><button type="button" aria-disabled="true" data-info="Local app only: open a read-only field-rule analysis snapshot in a separate tab. This tour shows the canned rules below.">Open rule analysis</button></div>
+      <div class="table-scroll"><table><thead><tr><th>Field</th><th>Source</th><th>Example rule</th></tr></thead><tbody><tr><td>patient_id</td><td>Regex / Unique</td><td>PT-[0-9]{8}</td></tr><tr><td>email</td><td>Expression</td><td>lower(body.first_name) + "." + lower(body.last_name) + "@example.test"</td></tr></tbody></table></div>
+      <div class="actions feature-controls">
+        <button type="button" aria-disabled="true" data-info="Local app only: choose Keep value, Regex, or Expression for each field and reorder dependent rules. The Go generator validates and evaluates rules; this tour does not execute arbitrary expressions.">Edit / reorder rules</button>
+        <button type="button" aria-disabled="true" data-info="Local app only: choose File (base64) for a field and upload a file. Existing data-URL prefixes are preserved. The tour does not read or upload your files.">File (base64)</button>
+        <button type="button" aria-disabled="true" data-info="Local app only: Unique fields reserve hashed values across actual runs on your machine. Preview does not consume reservations. Reuse existing / shared records skips Unique rules; this tour has no persistent uniqueness history.">Unique / data strategy</button>
+      </div>
+      <p id="rules"></p>
+    </section>
+    </div>
+    <aside class="workspace-side" aria-label="Payload preview and run controls">
+    <section class="preview-panel band">
+      <div class="section-title"><h2><span>Payload preview</span></h2><button type="button" aria-disabled="true" data-info="Local app only: open the payload preview in a separate read-only analysis tab. Inspect this demo's generated JSON below instead.">Open analysis</button></div>
       <div class="actions"><button id="preview" type="button" disabled>Generate payload preview</button><span id="preview-note"></span></div>
       <pre id="payload" tabindex="0">Select the highlighted traffic option to begin.</pre>
+      <div class="actions"><button id="download-samples" type="button" disabled data-info="Download one canned request per API as a dummy JSON sample. The local app can generate up to 10 bodies per API without consuming persistent Unique values.">Download samples</button><button id="copy-preview" type="button" disabled data-info="Copy the dummy JSON preview. If clipboard access is unavailable, the JSON is selected for manual copying.">Copy payload</button></div>
     </section>
-    <section class="band">
-      <h2>03 <span>Run console</span></h2>
-      <div class="actions"><button id="start" type="button" disabled>Start demo</button><button id="stop" type="button" disabled>Stop</button><button id="download" type="button" disabled>Download sample report</button><span id="run-state" role="status" aria-live="polite">Ready</span></div>
+    <section class="run-panel band">
+      <div class="section-title"><h2><span>Ready to run</span></h2><span id="run-state" role="status" aria-live="polite">Ready</span></div>
+      <p>Simulated targets only. Real tests require authorization in the local application.</p>
+      <div class="actions feature-controls">
+        <button type="button" aria-disabled="true" data-info="Local app only: request-body recording is opt-in because payloads may contain sensitive data. This demo always records its dummy request bodies so you can inspect them.">Recording options</button>
+        <button type="button" aria-disabled="true" data-info="Local app only: setup exports exclude credential-like headers by default; including them requires an explicit choice. Demo setup exports never contain credentials or real payloads.">Include credentials</button>
+      </div>
+      <div class="actions"><button id="start" type="button" disabled>Start demo</button><button id="stop" type="button" disabled>Stop</button></div>
       <progress id="progress" value="0" max="100" aria-label="Simulated run progress"></progress>
+    </section>
+    </aside>
+    </div>
+    <section class="band">
+      <div class="section-title"><h2>04 <span>Run results</span></h2><div class="setup-actions"><button type="button" aria-disabled="true" data-info="Local app only: open a read-only results snapshot in a new tab. This tour's results and request/response inspector are shown below; downloaded reports contain all simulated records.">Open results analysis</button><button id="download" type="button" disabled>Download sample report</button></div></div>
       <dl class="metrics"><div><dt>Requests</dt><dd id="total">0</dd></div><div><dt>Successful</dt><dd id="success">0</dd></div><div><dt>Failed</dt><dd id="failed">0</dd></div><div><dt>p95 (dummy)</dt><dd id="p95">--</dd></div></dl>
+      <p>Latest 30 simulated requests. The sample report includes every simulated record.</p>
       <div class="table-scroll results"><table><thead><tr><th>Request</th><th>API</th><th>Status</th><th>Latency (dummy)</th></tr></thead><tbody id="records"><tr><td colspan="4">No simulated requests yet.</td></tr></tbody></table></div>
       <div class="inspector"><section><h3>Sent request (dummy)</h3><pre id="request">Select a result to inspect its request.</pre></section><section><h3>Response (dummy)</h3><pre id="response">Select a result to inspect its response.</pre></section></div>
     </section>
