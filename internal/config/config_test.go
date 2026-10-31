@@ -68,3 +68,49 @@ func writeTestConfig(t *testing.T, tokenEnv, tokenFile string) string {
 	}
 	return dir
 }
+
+func TestValidationEdges(t *testing.T) {
+	for _, test := range []struct {
+		name, key string
+		value     any
+	}{
+		{"zero timeout", "timeout", "0s"}, {"negative timeout", "timeout", "-1s"}, {"zero burst", "burst_size", 0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dir := writeTestConfig(t, "", "")
+			path := filepath.Join(dir, "config.json")
+			raw, _ := os.ReadFile(path)
+			var fields map[string]any
+			json.Unmarshal(raw, &fields)
+			fields[test.key] = test.value
+			raw, _ = json.Marshal(fields)
+			os.WriteFile(path, raw, 0600)
+			if _, err := Load(path); err == nil {
+				t.Fatal("accepted invalid setting")
+			}
+		})
+	}
+}
+
+func TestValidationUsesDatasetOverlay(t *testing.T) {
+	dir := writeTestConfig(t, "", "")
+	os.WriteFile(filepath.Join(dir, "body.json"), []byte(`{"qty":null,"amount":0}`), 0600)
+	os.WriteFile(filepath.Join(dir, "dataset.json"), []byte(`[{"qty":2}]`), 0600)
+	path := filepath.Join(dir, "config.json")
+	raw, _ := os.ReadFile(path)
+	var fields map[string]any
+	json.Unmarshal(raw, &fields)
+	scenario := fields["scenarios"].([]any)[0].(map[string]any)
+	scenario["dataset_file"] = "dataset.json"
+	scenario["overlay_dataset_keys"] = true
+	scenario["field_rules"] = []any{map[string]any{"path": []string{"amount"}, "expression": "body.qty * 10"}}
+	raw, _ = json.Marshal(fields)
+	os.WriteFile(path, raw, 0600)
+	if _, err := Load(path); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(dir, "dataset.json"), []byte(`[null]`), 0600)
+	if _, err := Load(path); err == nil {
+		t.Fatal("null dataset accepted")
+	}
+}

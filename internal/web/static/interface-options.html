@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Load Lab | Interface Options</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/mockups.css" />
+  </head>
+  <body class="concept-page">
+    <header>
+      <a class="brand" href="/"
+        >LOAD<span>LAB</span><span class="brand-tag">INTERFACE OPTIONS</span></a
+      ><a href="/">Current workspace</a>
+    </header>
+    <main>
+      <div class="analysis-heading">
+        <div>
+          <div class="eyebrow">DESIGN REVIEW / THREE DIRECTIONS</div>
+          <h1>Choose your workspace.</h1>
+          <p>
+            Static mockups only. No requests are sent. The current design
+            remains available and unchanged.
+          </p>
+        </div>
+        <img
+          class="concept-trace"
+          src="/traffic.svg"
+          alt="Traffic burst trace"
+        />
+      </div>
+      <nav class="concept-nav" aria-label="Interface concepts">
+        <a href="#option-a">A / Refined current</a
+        ><a href="#option-b">B / Split workspace</a
+        ><a href="#option-c">C / Run console</a>
+      </nav>
+      <section class="concept" id="option-a">
+        <div class="concept-caption">
+          <h2>A. Refined Current</h2>
+          <p>
+            The familiar form and preview, with compact validation and separate
+            analysis tabs.
+          </p>
+          <span>Closest to the current design</span>
+        </div>
+        <div class="mock-shell">
+          <div class="mock-top">
+            <b>LOAD LAB</b><span>New run / Staging</span
+            ><span class="mock-good">Ready</span>
+          </div>
+          <div class="mock-current">
+            <div>
+              <div class="mock-title">01 &nbsp; Traffic profile</div>
+              <div class="mock-segments">
+                <span>Normal</span><span>Burst</span
+                ><span class="active">Multi-API Burst</span
+                ><span>Weighted</span>
+              </div>
+              <div class="mock-inputs">
+                <div><small>Users / burst</small><b>100</b></div>
+                <div><small>Burst schedule</small><b>Single burst</b></div>
+                <div><small>Max in flight</small><b>300</b></div>
+              </div>
+              <div class="mock-summary">
+                300 requests / 3 APIs / one synchronized group
+              </div>
+              <div class="mock-title">02 &nbsp; API scenarios</div>
+              <div class="mock-tabs">
+                <span class="active">Create patient</span
+                ><span>Update record</span><span>Search</span>
+              </div>
+              <div class="mock-endpoint">
+                <b>POST</b> staging.example.test/patients
+              </div>
+              <div class="mock-title">
+                03 &nbsp; Field rules <span>Open analysis &#8599;</span>
+              </div>
+              <div class="mock-row">
+                <span>patient_id</span><span>Unique regex</span
+                ><code>PT-[0-9]{8}</code>
+              </div>
+              <div class="mock-row">
+                <span>email</span><span>Expression</span
+                ><code>body.first_name + "@test.example"</code>
+              </div>
+            </div>
+            <aside class="mock-preview">
+              <div class="mock-title">Payload preview <span>&#8599;</span></div>
+              <pre>
+{
+  "patient_id": "PT-80123456",
+  "first_name": "Morgan",
+  "email": "Morgan@test.example"
+}</pre
+              >
+              <div class="mock-preview-status">Sample 1 of 3 / Valid JSON</div>
+              <button disabled class="mock-primary">Start test</button>
+            </aside>
+          </div>
+        </div>
+      </section>
+      <section class="concept" id="option-b">
+        <div class="concept-caption">
+          <h2>B. Split Workspace</h2>
+          <p>
+            APIs stay visible beside the payload, with an independent inspection
+            area.
+          </p>
+          <span>Best for comparing several APIs</span>
+        </div>
+        <div class="mock-shell">
+          <div class="mock-top">
+            <b>LOAD LAB</b><span>Scenario workspace</span
+            ><span class="mock-good">100% allocated</span>
+          </div>
+          <div class="mock-split">
+            <nav class="mock-api-list" aria-label="Mock scenario list">
+              <b>APIs</b>
+              <div class="active">Create patient <small>30%</small></div>
+              <div>Update record <small>30%</small></div>
+              <div>Search <small>40%</small></div>
+              <span class="mock-add">+ Add API</span>
+            </nav>
+            <div class="mock-editor">
+              <div class="mock-tabs">
+                <span class="active">Payload</span><span>Field rules</span
+                ><span>Headers</span>
+              </div>
+              <div class="mock-endpoint"><b>POST</b> /patients</div>
+              <pre>
+{
+  "patient_id": "",
+  "first_name": "",
+  "email": ""
+}</pre
+              >
+              <div class="mock-summary">3 fields / 2 generated / 1 unique</div>
+            </div>
+            <aside class="mock-inspection">
+              <div class="mock-title">Generated sample</div>
+              <code>PT-80123456</code>
+              <div class="mock-title">Validation</div>
+              <p class="mock-good">All required fields present</p>
+              <p class="mock-good">Percentage allocation valid</p>
+              <div class="mock-title">Run settings</div>
+              <p>30 seconds / 10 in flight</p>
+              <button disabled class="mock-primary">Start test</button>
+            </aside>
+          </div>
+        </div>
+      </section>
+      <section class="concept" id="option-c">
+        <div class="concept-caption">
+          <h2>C. Run Console</h2>
+          <p>
+            Results-first layout for repeated investigations, with a compact
+            configuration drawer.
+          </p>
+          <span>Best for comparing runs and failures</span>
+        </div>
+        <div class="mock-shell">
+          <div class="mock-top">
+            <b>LOAD LAB</b><span>Run 024 / Multi-API Burst</span
+            ><span class="mock-good">Completed</span>
+          </div>
+          <div class="mock-console">
+            <div class="mock-console-toolbar">
+              <span>3 APIs / 100 users / single burst</span
+              ><span class="mock-link">Edit configuration</span
+              ><button disabled class="mock-primary">Run again</button>
+            </div>
+            <div class="mock-metrics">
+              <div><small>Completed</small><strong>300</strong></div>
+              <div>
+                <small>Failed</small><strong class="mock-danger">4</strong>
+              </div>
+              <div><small>p95 latency</small><strong>128 ms</strong></div>
+              <div><small>Dropped</small><strong>0</strong></div>
+            </div>
+            <div class="mock-tabs">
+              <span class="active">Requests</span><span>API summary</span
+              ><span>Payload analysis &#8599;</span>
+            </div>
+            <div class="mock-result-head">
+              <span>API</span><span>Status</span><span>Latency</span
+              ><span>Result</span>
+            </div>
+            <div class="mock-result-row">
+              <span>Create patient</span><span>201</span><span>42 ms</span
+              ><span class="mock-good">Expected</span>
+            </div>
+            <div class="mock-result-row">
+              <span>Update record</span><span>409</span><span>128 ms</span
+              ><span class="mock-danger">Conflict</span>
+            </div>
+            <div class="mock-result-row">
+              <span>Search</span><span>200</span><span>18 ms</span
+              ><span class="mock-good">Expected</span>
+            </div>
+            <div class="mock-body-pair">
+              <div>
+                <b>Sent request</b>
+                <pre>{ "patient_id": "SHARED-42" }</pre>
+              </div>
+              <div>
+                <b>Response</b>
+                <pre>{ "error": "record_conflict" }</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <footer>
+        <span>STATIC MOCKUPS / NO TESTING LOGIC</span
+        ><a href="/">Keep current interface</a>
+      </footer>
+    </main>
+  </body>
+</html>

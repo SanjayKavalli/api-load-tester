@@ -11,31 +11,40 @@ import (
 
 // ResponseRecord is one captured HTTP response.
 type ResponseRecord struct {
-	Index       int             `json:"index"`
-	Scenario    string          `json:"scenario"`
-	Method      string          `json:"method"`
-	URL         string          `json:"url"`
-	StartedAt   time.Time       `json:"started_at"`
-	DurationMs  float64         `json:"duration_ms"`
-	Status      int             `json:"status"`
-	ContentType string          `json:"content_type,omitempty"`
-	Expected    bool            `json:"expected"`
-	Error       string          `json:"error,omitempty"`
-	Body        json.RawMessage `json:"body,omitempty"`
-	BodyText    string          `json:"body_text,omitempty"`
-	BodyBytes   int             `json:"body_bytes"`
-	Truncated   bool            `json:"body_truncated,omitempty"`
+	RunID             string          `json:"run_id,omitempty"`
+	RequestBody       json.RawMessage `json:"request_body,omitempty"`
+	Index             int             `json:"index"`
+	Scenario          string          `json:"scenario"`
+	Method            string          `json:"method"`
+	URL               string          `json:"url"`
+	StartedAt         time.Time       `json:"started_at"`
+	DurationMs        float64         `json:"duration_ms"`
+	Status            int             `json:"status"`
+	ContentType       string          `json:"content_type,omitempty"`
+	Expected          bool            `json:"expected"`
+	Error             string          `json:"error,omitempty"`
+	Body              json.RawMessage `json:"body,omitempty"`
+	BodyText          string          `json:"body_text,omitempty"`
+	BodyBytes         int             `json:"body_bytes"`
+	Truncated         bool            `json:"body_truncated,omitempty"`
+	DeclaredBodyBytes int64           `json:"declared_body_bytes,omitempty"`
 }
 
 // RunSummary is the aggregate written at the end of a response file.
 type RunSummary struct {
-	ElapsedMs            float64     `json:"elapsed_ms"`
-	Completed            int         `json:"completed"`
-	Failed               int         `json:"failed"`
-	NetworkErrors        int         `json:"network_errors"`
-	DroppedArrivals      int         `json:"dropped_arrivals"`
-	BodyGenerationErrors int         `json:"body_generation_errors"`
-	Statuses             map[int]int `json:"statuses"`
+	Outcome              string                     `json:"outcome,omitempty"`
+	Scheduled            int                        `json:"scheduled"`
+	Generated            int                        `json:"generated"`
+	Sent                 int64                      `json:"sent"`
+	RunID                string                     `json:"run_id,omitempty"`
+	Scenarios            map[string]ScenarioSummary `json:"scenarios,omitempty"`
+	ElapsedMs            float64                    `json:"elapsed_ms"`
+	Completed            int                        `json:"completed"`
+	Failed               int                        `json:"failed"`
+	NetworkErrors        int                        `json:"network_errors"`
+	DroppedArrivals      int                        `json:"dropped_arrivals"`
+	BodyGenerationErrors int                        `json:"body_generation_errors"`
+	Statuses             map[int]int                `json:"statuses"`
 }
 
 // Recorder streams responses into a per-run JSON file. It is safe for
@@ -60,7 +69,20 @@ func NewRecorder(dir string, startedAt time.Time, maxBodyBytes int) (*Recorder, 
 	}
 
 	path := filepath.Join(dir, fmt.Sprintf("responses_%s.json", startedAt.Format("20060102-150405")))
-	file, err := os.Create(path)
+	var file *os.File
+	var err error
+	for attempt := 0; attempt < 1000; attempt++ {
+		if attempt > 0 {
+			path = filepath.Join(dir, fmt.Sprintf("responses_%s_%03d.json", startedAt.Format("20060102-150405"), attempt))
+		}
+		file, err = os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		if err == nil {
+			break
+		}
+		if !os.IsExist(err) {
+			return nil, fmt.Errorf("create response file: %w", err)
+		}
+	}
 	if err != nil {
 		return nil, fmt.Errorf("create response file: %w", err)
 	}

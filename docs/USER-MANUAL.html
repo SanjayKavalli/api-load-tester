@@ -204,6 +204,10 @@
   <nav>
     <div class="links">
       <a href="#quick-start">Quick start</a>
+      <a href="#web-interface">Browser UI</a>
+      <a href="#workspace-configuration">Classic / Balanced configuration</a>
+      <a href="#multi-api-development">Multi-API bursts & repeat runs</a>
+      <a href="#correctness-ux">Correctness & analysis views</a>
       <a href="#choose-test">Choose test</a>
       <a href="#configure">Configure</a>
       <a href="#tokens">Tokens</a>
@@ -215,6 +219,92 @@
   </nav>
 
   <main>
+    <section id="web-interface">
+      <h2>Browser interface: Load Lab</h2>
+      <p>Start the local interface from the project folder:</p>
+      <pre><code>go run ./cmd/web -port 8080</code></pre>
+      <p>Open <a href="http://127.0.0.1:8080">http://127.0.0.1:8080</a>. Choose Normal, Burst, Multi-API Burst, Weighted (custom percentages), or Coordinated traffic. Add multiple API scenarios, configure each target, upload its JSON payload, and optionally upload scenario or shared datasets. The separate end-user guide is available at <a href="http://127.0.0.1:8080/user-manual.html">/user-manual.html</a>.</p>
+      <p>For Normal, Burst, and Weighted profiles, set each API's Percentage (%) to a whole number between 1 and 100. Choose any split, for example 30/30/40 or ten APIs at 10% each. The total must equal 100%. The live allocation total shows what remains or exceeds 100%; Start stays disabled until valid, and the server independently validates the total.</p>
+      <p>Every scalar field, including nested array entries, supports a regex or a sandboxed business expression. Rules run in displayed order after dataset overlay. Use the arrows to put dependencies first.</p>
+      <table><thead><tr><th>Source</th><th>Example</th><th>Result</th></tr></thead><tbody>
+        <tr><td>Regex</td><td><code>PT-[0-9]{8}</code></td><td>A generated string matching the pattern</td></tr>
+        <tr><td>Expression</td><td><code>body.quantity * body.unit_price</code></td><td>A numeric value derived from other keys</td></tr>
+        <tr><td>Expression</td><td><code>ssn(body.dob, body.gender)</code></td><td>The existing DOB/gender-based synthetic identifier</td></tr>
+        <tr><td>Expression</td><td><code>lower(body.first_name) + "@example.test"</code></td><td>A value derived from an earlier field</td></tr>
+      </tbody></table>
+      <p>Regex uses Go/RE2 syntax, without lookarounds, backreferences, or word-boundary assertions. Business rules use the Expr language, not free-text instructions or arbitrary JavaScript. For local PDF/file placeholders, select File (base64) on the field and upload the file; existing data-URL prefixes are retained.</p>
+      <p>Generate a preview, confirm target authorization, then start the test. Stop halts scheduling while in-flight requests finish. Download results or export the complete setup for reuse. Setup exports include payload data and any authorization headers; keep them secure. Import accepts exported Load Lab bundles, not standalone CLI configs.</p>
+      <div class="note">Normal, Burst, and Weighted use the configured percentages as selection probabilities, not guaranteed exact counts in short runs. Coordinated mode does not use percentages: it sends every scenario for each virtual user using the selected shared record. It does not sequence dependent API calls.</div>
+      <div class="warn">Local access only. Web limits: 8 MiB per submission, one active run, duration up to one hour, 1000 in-flight requests (10,000 for Multi-API Burst), and timeout up to one minute. Web response bodies are recorded up to 2 KiB each. Optional request-body capture records complete sent JSON and may contain sensitive data.</div>
+    </section>
+    <section id="multi-api-development">
+      <h2>Developer reference: synchronized bursts and repeated runs</h2>
+      <p>The UI profile Multi-API Burst maps to <code>execution_mode: "multi_api_burst"</code>. It uses the coordinated scheduler: <code>burst_size</code> virtual users each invoke every scenario using the selected shared record. Scenario weights remain positive but are not used in this mode. Request count is users per burst multiplied by scenario count.</p>
+      <pre><code>{
+  "execution_mode": "multi_api_burst",
+  "burst_mode": "once",
+  "burst_interval": "1s",
+  "duration": "10s",
+  "rate": 1,
+  "burst_size": 100,
+  "max_inflight": 300,
+  "timeout": "10s",
+  "data_mode": "fresh",
+  "record_request_bodies": true,
+  "scenarios": [
+    {"name":"create", "weight":1, "method":"POST", "url":"http://test-host/create", "body_file":"create-body.json"},
+    {"name":"update", "weight":1, "method":"PUT", "url":"http://test-host/update", "body_file":"update-body.json"},
+    {"name":"search", "weight":1, "method":"POST", "url":"http://test-host/search", "body_file":"search-body.json"}
+  ]
+}</code></pre>
+      <h3>Scheduling contract</h3>
+      <p><code>burst_mode</code> is <code>once</code> (default) or <code>repeat</code>. Single bursts start immediately and finish after their requests complete, rather than waiting for duration. Repeated bursts start immediately, then wait <code>burst_interval</code> between releases (default 1s, minimum 1ms) until duration expires. <code>rate</code> is required by the existing schema but is ignored for multi-API timing.</p>
+      <p>All bodies are prepared before any request in a group starts. Preparation failure stops the run and sends none of that group. The concurrency cap must hold the full group. If an earlier group is still occupying too many slots, the next whole group is dropped instead of being partially released. Generation and goroutine scheduling add overhead: this is a shared software gate, not a guarantee of identical network arrival times. Confirm deadlocks with database/server logs.</p>
+      <h3>Generation sessions and uniqueness</h3>
+      <p>Each run has a UUID <code>run_id</code> and a run-local <code>sequence</code> counter available in Expr rules. Add <code>"unique": true</code> to a field rule to reserve scalar results across actual runs. For example:</p>
+      <pre><code>"field_rules": [
+  {"path":["external_id"], "expression":"\"record-\" + run_id + \"-\" + string(sequence)", "unique":true},
+  {"path":["patient_id"], "regex":"PT-[0-9]{8}", "unique":true}
+]</code></pre>
+      <p>The default history is <code>os.UserConfigDir()/load-lab/unique-values.jsonl</code> (normally <code>%APPDATA%\load-lab\unique-values.jsonl</code> on Windows). CLI configs can set <code>unique_history_file</code>, resolved relative to the config. Web uploads cannot select this server filesystem path.</p>
+      <p>The history stores SHA-256 digests of the exact JSON field path plus scalar value, shared across API names at that path. Reservations are appended and synced before values are sent. A cross-process OS file lock prevents concurrent runners using the same history. Preserve and back up the history; no server-database or cross-machine uniqueness check is performed. Failed/stopped preparations also consume reservations. Do not clear the history unless duplicate reuse is acceptable.</p>
+      <p>Unique generation retries at most 128 times; failure stops rather than reusing a value. This is bounded collision handling, not a proof of regex capacity. Use a larger pattern when its space is nearly consumed. Ordinary regex generation does not imply uniqueness. Unique fields must resolve to scalar strings, numbers, or booleans without unresolved placeholders.</p>
+      <p><code>data_mode: "existing"</code> skips rules marked Unique, retaining the template or overlaid dataset value. Other rules still run. Pair shared dataset mode <code>fixed</code> and overlay on all scenarios to exercise the same existing record deliberately. Default <code>data_mode: "fresh"</code> executes all rules.</p>
+      <h3>Previews and response records</h3>
+      <p><code>POST /api/preview</code> accepts optional <code>sample_count</code> from 1 to 10. The default retains the original response shape (scenario to one body); multiple samples return scenario to an array of bodies. Previews use an isolated in-memory history and never consume persistent reservations.</p>
+      <p><code>record_request_bodies</code> defaults to false. When enabled, each response record includes the complete, final <code>request_body</code> alongside <code>run_id</code>, URL, method, status, timing, and response. The summary contains the run ID and per-API completed/failed/network-error counts and p95/p99 latency. Same-second report filenames receive a numeric suffix instead of overwriting an earlier report. Body capture is independent of request logging; both may contain sensitive values.</p>
+      <p>Regression coverage includes a blocking mock API proving concurrent release, no partial sends on preparation failure, persistent uniqueness after reopening history, exact sent-body capture, and collision-safe report filenames. Run <code>go test ./...</code>.</p>
+    </section>
+    <section id="correctness-ux">
+      <h2>Correctness fixes and analysis views</h2>
+      <p>The existing workspace and traffic profiles remain in place. The interface-options gallery at <code>/interface-options.html</code> is a separate set of static mockups; it has no testing actions. Analysis icons beside preview, results, and field rules open read-only snapshots at <code>/analysis.html</code>.</p>
+      <p>Snapshot transfer uses a random BroadcastChannel identifier in the URL hash and same-origin in-memory messages, with <code>noopener</code> on the new window. Payloads and credentials are not embedded in URLs or local storage. Snapshots contain no run or mutation controls. Results snapshots include the latest 100 records; use the workspace download for the full report. A disconnected/expired snapshot must be reopened from its workspace.</p>
+      <p>Setup exports carry version 1 (legacy unversioned exports remain accepted), use compact JSON, and exclude credential-like headers by default. Explicit credential inclusion does not change the live request headers. Bundle files can be up to 16 MiB when formatted, while the actual compact submission remains limited to 8 MiB. Imports validate before state replacement. Web runs use explicit request authentication, not an inherited <code>API_TOKEN</code>; CLI global-token behavior is unchanged.</p>
+      <p>Preview and configuration examples use the same first-record selection as execution. Synchronized modes use only shared datasets; per-scenario cycle cursors advance independently in the scheduler. Overlay values are copied before resolution. Null dataset entries, non-positive timeouts, explicitly zero burst sizes, unsafe numeric identifiers, and duplicate/overlapping rule paths are rejected. Numeric identifiers beyond the safe integer range must be strings.</p>
+      <p>HTTP redirects are not followed automatically. The response cap remains 2 MiB at transport level, with explicit truncation metadata propagated to reports, even with unlimited recorder output. A declared response length is recorded when available. Web report-body capture remains 2 KiB. Generation failures produce a failed run or a partial outcome rather than a misleading successful completion; scheduled/generated/sent counters supplement completed/failed/dropped counts.</p>
+      <p>Monitoring now retries with bounded backoff and exposes a reconnect control. Stop remains available while an active run is disconnected. Monitoring and analysis do not change the configured request workload.</p>
+      <pre><code>go test ./...
+go vet ./...
+node --test internal/web/ui.test.cjs</code></pre>
+      <p>Node is used only for the optional development-side frontend tests; the application still runs as an embedded Go executable. Browser regressions additionally cover failed-import rollback, upload recovery, compound intervals, large bundle import, reconnect behavior, new-tab snapshots, and desktop/mobile layouts. Race detection still requires a CGO-enabled development or CI toolchain.</p>
+    </section>
+    <section id="workspace-configuration">
+      <h2>Classic / Balanced UI configuration</h2>
+      <p>The original UI remains available at <code>/classic</code>. The Balanced page at <code>/balanced</code> uses the same server-rendered controls and the same <code>ui-core.js</code>, <code>app.js</code>, and <code>snapshots.js</code>. Its additional stylesheet and adapter only arrange the DOM, render a compact API list, select presentation panels, and manage pane dimensions. The request engine, generator, transport, and scenario configuration schema are unchanged by this layout implementation.</p>
+      <pre><code># Both interfaces; original page remains the default.
+go run ./cmd/web -port 8080 -ui both -default-ui classic
+
+# Both interfaces; Balanced becomes the default.
+go run ./cmd/web -port 8080 -ui both -default-ui balanced
+
+# Enable just one interface after testing.
+go run ./cmd/web -port 8080 -ui balanced
+go run ./cmd/web -port 8080 -ui classic</code></pre>
+      <p>Run one of these alternatives at a time. Stop active tests before restarting the UI server. <code>-ui</code> accepts <code>both</code>, <code>classic</code>, or <code>balanced</code>; <code>-default-ui</code> must name an enabled page. Defaults preserve Classic at the root. When only Balanced is enabled, it is selected automatically. Disabled routes return 404; <code>GET /api/ui</code> publishes enabled layouts for the header links. This is interface availability, not a separate runner or authentication boundary.</p>
+      <p>Classic and Balanced tabs have independent setup state but share one active backend run. Both refresh status when focused. Import the same setup into each tab to compare them; exported setup JSON does not contain layout flags or pane preferences. Native traffic-profile handlers remain the source of mode changes, including their existing defaults and constraints.</p>
+      <p>Balanced supports pointer and keyboard resizing for the API/sidebar width, settings width, console height, and request/response inspector ratio. Numerical preferences alone are stored in <code>load-lab-balanced-layout-v1</code>. Reset and double-click restore dimensions without touching request data. Responsive layouts stack panes and hide desktop dividers on smaller screens.</p>
+      <p>Regression coverage includes route gating, enabled-default validation, shared-control/script parity, identical normalized setup hashes for all five modes, and local mock runs from both interfaces. Browser checks cover compact Add/remove controls, visual-only filtering, pane dragging, keyboard resizing, body inspection, and narrow-screen layout. The static concept galleries remain separate review artifacts.</p>
+    </section>
     <section id="quick-start">
       <h2>Quick start</h2>
       <div class="step"><div class="number">1</div><div><b>Choose an example.</b><p>Copy the closest JSON from <code>configs\examples</code>.</p></div></div>

@@ -1,12 +1,16 @@
 package engine
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/rand"
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go-api-load-tester/internal/config"
@@ -26,6 +30,14 @@ type scheduledRequest struct {
 }
 
 func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir string, maxResponseBodyBytes int) error {
+	return RunContext(context.Background(), cfg, logRequestBody, logResponseBody, responseDir, maxResponseBodyBytes)
+}
+
+func RunContext(ctx context.Context, cfg *config.Config, logRequestBody, logResponseBody bool, responseDir string, maxResponseBodyBytes int) error {
+	multiBurst := cfg.ExecutionMode == "multi_api_burst"
+	if multiBurst && (len(cfg.Scenarios) == 0 || cfg.BurstSize > cfg.MaxInFlight/len(cfg.Scenarios)) {
+		return fmt.Errorf("max_inflight must cover the complete multi-API burst")
+	}
 	duration, err := time.ParseDuration(cfg.Duration)
 	if err != nil {
 		return fmt.Errorf("parse load-test duration: %w", err)
@@ -34,7 +46,48 @@ func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir s
 	if err != nil {
 		return fmt.Errorf("parse request timeout: %w", err)
 	}
-	client := transport.New(timeout, cfg.MaxInFlight, os.Getenv("API_TOKEN"))
+	interval := time.Second / time.Duration(cfg.Rate)
+	if multiBurst {
+		interval = time.Second
+		if cfg.BurstInterval != "" {
+			interval, err = time.ParseDuration(cfg.BurstInterval)
+			if err != nil || interval < time.Millisecond {
+				return fmt.Errorf("invalid burst interval")
+			}
+		}
+	}
+	var store *generator.UniqueStore
+	if cfg.DataMode != "existing" {
+		needsHistory := false
+		for _, scenario := range cfg.Scenarios {
+			for _, rule := range scenario.FieldRules {
+				needsHistory = needsHistory || rule.Unique
+			}
+		}
+		if needsHistory {
+			path := cfg.UniqueHistoryFile
+			if path == "" {
+				path, err = generator.DefaultHistoryPath()
+				if err != nil {
+					return err
+				}
+			}
+			store, err = generator.OpenUniqueStore(path)
+			if err != nil {
+				return err
+			}
+			defer store.Close()
+		}
+	}
+	session, err := generator.NewSession(store, cfg.DataMode == "existing")
+	if err != nil {
+		return err
+	}
+	globalToken := os.Getenv("API_TOKEN")
+	if cfg.DisableGlobalToken {
+		globalToken = ""
+	}
+	client := transport.New(timeout, cfg.MaxInFlight, globalToken)
 
 	var recorder *report.Recorder
 	if strings.TrimSpace(responseDir) != "" {
@@ -88,24 +141,71 @@ func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir s
 	for _, s := range cfg.Scenarios {
 		totalWeight += s.Weight
 	}
-	interval := time.Second / time.Duration(cfg.Rate)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+	var arrivals <-chan time.Time = ticker.C
+	if multiBurst {
+		immediate := make(chan time.Time, 1)
+		immediate <- time.Now()
+		arrivals = immediate
+	}
 	timer := time.NewTimer(duration)
 	defer timer.Stop()
 
 	var dropped, bodyErrors int
+	var scheduledCount, generatedCount int
+	var sentCount atomic.Int64
 	sharedDatasetIndex := 0
 	start := time.Now()
 	running := true
+	var runErr error
 
 	for running {
 		select {
+		case <-ctx.Done():
+			running = false
 		case <-timer.C:
 			running = false
-		case <-ticker.C:
+		case <-arrivals:
+			if multiBurst {
+				arrivals = ticker.C
+				if cfg.BurstMode != "repeat" {
+					running = false
+				}
+			}
+			scheduledRequests := scheduleBurst(cfg, totalWeight, &sharedDatasetIndex)
+			scheduledCount += len(scheduledRequests)
+			var preparedBodies [][]byte
+			if multiBurst {
+				if len(semaphore)+len(scheduledRequests) > cfg.MaxInFlight {
+					dropped += len(scheduledRequests)
+					continue
+				}
+				preparedBodies = make([][]byte, len(scheduledRequests))
+				for index, scheduled := range scheduledRequests {
+					if ctx.Err() != nil {
+						running = false
+						break
+					}
+					scenario := scheduled.scenario
+					preparedBodies[index], err = generator.BuildBodyWithSession(scenario.BodyTemplate, scheduled.record, scenario.OverlayDatasetKeys, cfg.BaseDir, scenario.FieldRules, session)
+					if err != nil {
+						bodyErrors++
+						runErr = fmt.Errorf("prepare synchronized burst: %w", err)
+						running = false
+						break
+					}
+					generatedCount++
+				}
+				if runErr != nil || ctx.Err() != nil {
+					break
+				}
+			}
 			startGate := make(chan struct{})
-			for _, scheduled := range scheduleBurst(cfg, totalWeight, &sharedDatasetIndex) {
+			for index, scheduled := range scheduledRequests {
+				if ctx.Err() != nil {
+					break
+				}
 				// Don't accumulate an unbounded queue if the service is saturated.
 				select {
 				case semaphore <- struct{}{}:
@@ -116,12 +216,25 @@ func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir s
 
 				s := scheduled.scenario
 				record := scheduled.record
-				body, err := generator.BuildBody(s.BodyTemplate, record, s.OverlayDatasetKeys, cfg.BaseDir)
+				var body []byte
+				if multiBurst {
+					body = preparedBodies[index]
+				} else {
+					body, err = generator.BuildBodyWithSession(s.BodyTemplate, record, s.OverlayDatasetKeys, cfg.BaseDir, s.FieldRules, session)
+				}
 				if err != nil {
 					bodyErrors++
 					<-semaphore
 					slog.Error("request body generation failed", "scenario", s.Name, "error", err)
+					if errors.Is(err, generator.ErrUniqueGeneration) {
+						runErr = err
+						running = false
+						break
+					}
 					continue
+				}
+				if !multiBurst {
+					generatedCount++
 				}
 
 				wg.Add(1)
@@ -130,6 +243,9 @@ func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir s
 					defer func() { <-semaphore }()
 
 					<-start
+					if ctx.Err() != nil {
+						return
+					}
 					if logRequestBody {
 						slog.Info("HTTP request body",
 							"scenario", s.Name,
@@ -139,18 +255,27 @@ func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir s
 						)
 					}
 					requestStart := time.Now()
+					sentCount.Add(1)
 					resp := client.Do(s.Method, s.URL, s.Headers, body)
 					expected := expectedStatus(resp.StatusCode, s.ExpectedStatuses, resp.Err)
+					var requestBody json.RawMessage
+					if cfg.RecordRequestBodies {
+						requestBody = body
+					}
 					recorder.Add(report.ResponseRecord{
-						Scenario:    s.Name,
-						Method:      s.Method,
-						URL:         s.URL,
-						StartedAt:   requestStart,
-						DurationMs:  float64(resp.Duration.Microseconds()) / 1000,
-						Status:      resp.StatusCode,
-						ContentType: resp.ContentType,
-						Expected:    expected,
-						Error:       errorText(resp.Err),
+						RunID:             session.RunID,
+						RequestBody:       requestBody,
+						Scenario:          s.Name,
+						Method:            s.Method,
+						URL:               s.URL,
+						StartedAt:         requestStart,
+						DurationMs:        float64(resp.Duration.Microseconds()) / 1000,
+						Status:            resp.StatusCode,
+						ContentType:       resp.ContentType,
+						Expected:          expected,
+						Error:             errorText(resp.Err),
+						Truncated:         resp.Truncated,
+						DeclaredBodyBytes: resp.DeclaredBodyBytes,
 					}, resp.Body)
 					responseAttrs := []any{
 						"status", resp.StatusCode,
@@ -210,6 +335,9 @@ func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir s
 				}(*s, body, startGate)
 			}
 			close(startGate)
+			if multiBurst {
+				ticker.Reset(interval)
+			}
 		}
 	}
 
@@ -236,8 +364,21 @@ func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir s
 		"body_generation_errors", bodyErrors,
 	)
 
+	if bodyErrors > 0 && runErr == nil {
+		runErr = fmt.Errorf("run had %d body generation errors; %d requests completed", bodyErrors, allStats.Count)
+	}
 	if recorder != nil {
+		perScenario := make(map[string]report.ScenarioSummary)
+		for name, stats := range scenarioStats {
+			perScenario[name] = stats.Snapshot()
+		}
 		summary := report.RunSummary{
+			Outcome:              "passed",
+			Scheduled:            scheduledCount,
+			Generated:            generatedCount,
+			Sent:                 sentCount.Load(),
+			RunID:                session.RunID,
+			Scenarios:            perScenario,
 			ElapsedMs:            float64(elapsed.Microseconds()) / 1000,
 			Completed:            allStats.Count,
 			Failed:               allStats.Failed,
@@ -246,17 +387,26 @@ func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir s
 			BodyGenerationErrors: bodyErrors,
 			Statuses:             allStats.Statuses,
 		}
+		if allStats.Failed > 0 || runErr != nil {
+			summary.Outcome = "failed"
+		}
+		if bodyErrors > 0 && allStats.Count > 0 {
+			summary.Outcome = "partial"
+		}
+		if ctx.Err() != nil {
+			summary.Outcome = "stopped"
+		}
 		if err := recorder.Close(summary); err != nil {
 			return err
 		}
 		fmt.Println("Responses written to:", recorder.Path())
 		slog.Info("responses written", "file", recorder.Path(), "response_count", recorder.Count())
 	}
-	return nil
+	return runErr
 }
 
 func requestsPerBurst(cfg *config.Config) int {
-	if cfg.ExecutionMode == "coordinated" {
+	if cfg.ExecutionMode == "coordinated" || cfg.ExecutionMode == "multi_api_burst" {
 		return cfg.BurstSize * len(cfg.Scenarios)
 	}
 	return cfg.BurstSize
@@ -264,7 +414,7 @@ func requestsPerBurst(cfg *config.Config) int {
 
 func scheduleBurst(cfg *config.Config, totalWeight int, sharedDatasetIndex *int) []scheduledRequest {
 	requests := make([]scheduledRequest, 0, requestsPerBurst(cfg))
-	if cfg.ExecutionMode == "coordinated" {
+	if cfg.ExecutionMode == "coordinated" || cfg.ExecutionMode == "multi_api_burst" {
 		for virtualUser := 0; virtualUser < cfg.BurstSize; virtualUser++ {
 			record := chooseSharedRecord(cfg.SharedDataset, cfg.SharedDatasetMode, sharedDatasetIndex)
 			for i := range cfg.Scenarios {
@@ -281,7 +431,7 @@ func scheduleBurst(cfg *config.Config, totalWeight int, sharedDatasetIndex *int)
 		scenario := choose(cfg.Scenarios, totalWeight)
 		var record map[string]any
 		if len(scenario.Dataset) > 0 {
-			record = chooseRecord(scenario.Dataset, scenario.DatasetMode)
+			record = chooseRecord(scenario.Dataset, scenario.DatasetMode, &scenario.DatasetIndex)
 		}
 		requests = append(requests, scheduledRequest{scenario: scenario, record: record})
 	}
@@ -322,13 +472,12 @@ func choose(scenarios []config.Scenario, totalWeight int) *config.Scenario {
 	return &scenarios[len(scenarios)-1]
 }
 
-func chooseRecord(records []map[string]any, mode string) map[string]any {
+func chooseRecord(records []map[string]any, mode string, index *int) map[string]any {
 	if len(records) == 0 {
 		return nil
 	}
 	if mode == "cycle" {
-		// This simple starter uses random selection for concurrent requests.
-		// Random selection avoids shared mutable index state across goroutines.
+		return chooseSharedRecord(records, "cycle", index)
 	}
 	return records[rand.Intn(len(records))]
 }

@@ -14,3 +14,7 @@ Thumbs.db
 .DS_Store
 postman-request-body.json
 *.token
+docs/AUDIT-2026-10-30.md
+docs/mockups/
+
+/data/

@@ -1,6 +1,93 @@
 # Generic Go API Load Tester — User & Testing Team Guide
 
+**Developed by [Sanjay Kavalli](https://github.com/SanjayKavalli)**
+
 Open the [rendered HTML user manual](https://sanjaykavalli.github.io/api-load-tester/docs/USER-MANUAL.html) for a short step-by-step guide.
+
+## Browser Interface
+
+Start the local UI from the project folder (Go 1.23 or newer):
+
+```powershell
+go run ./cmd/web -port 8080
+```
+
+Open http://127.0.0.1:8080. The frontend is embedded in the Go server; Node.js is not required. Build a shareable executable with `go build -o loadlab.exe ./cmd/web`.
+
+### Choose the Workspace UI
+
+The original Classic page is preserved at `/classic`. Balanced is available at `/balanced`, with a compact API sidebar, Add API beside the heading, focused request/rules/preview tabs, and a docked Run console. Both use the same controls and behavior scripts; no load-test engine or scenario-schema change is required.
+
+```powershell
+# Compare both; keep Classic as the initial page.
+go run ./cmd/web -port 8080 -ui both -default-ui classic
+
+# Compare both; make Balanced the initial page.
+go run ./cmd/web -port 8080 -ui both -default-ui balanced
+
+# After comparison, enable only the chosen page.
+go run ./cmd/web -port 8080 -ui balanced
+go run ./cmd/web -port 8080 -ui classic
+```
+
+These are alternative startup commands, not commands to run together on one port. Stop any active test and restart the UI server to change enabled layouts. Defaults are `-ui both` and Classic at `/`; when only Balanced is enabled, `/` opens Balanced automatically. Disabled layout routes return 404. The header offers the other layout only when both are enabled.
+
+Balanced's API and settings dividers resize widths; the console divider resizes height; its request/response inspector also has an adjustable divider. Arrow keys, Shift+arrows, Home/End, divider double-click, and Reset pane sizes are supported. Only numerical pane dimensions are stored under the browser preference key `load-lab-balanced-layout-v1`. Filtering the API list does not remove APIs from the workload.
+
+Use the same exported setup to compare pages. Each browser tab has an independent form, while both pages share one runner and its single-active-run limit. Focusing a layout refreshes run status. All five traffic modes, shared datasets, field rules, previews, import/export, recording, and analysis views remain available.
+
+1. Select **Normal**, **Burst**, **Multi-API Burst**, **Weighted (custom percentages)**, or **Coordinated**. Configure duration, bursts per second, users per burst, concurrency, and timeout. Weighted selection is probabilistic, not an exact request-count split. Coordinated and Multi-API Burst run every scenario per user, without ordering or passing responses between scenarios.
+2. Set each scenario's URL, HTTP method, percentage, headers, bearer token, and expected statuses. Add multiple APIs and choose any whole-number split, such as 30/30/40 or ten APIs at 10% each. Each percentage must be 1..100 and the total must equal 100%; the live allocation total shows remaining or excess percentage and Start stays disabled until valid. The server independently checks these rules. Percentages apply to Normal, Burst, and Weighted profiles; Coordinated sends every API and does not use a percentage split. The CLI continues to accept relative weights. Upload a local JSON object or edit the request body directly.
+3. Optionally upload scenario datasets (JSON arrays of objects), or a shared dataset for coordinated runs. Choose fixed/shared, cycle, or random record selection. Preview uses the first dataset record; actual runs use the configured selection strategy.
+4. Choose **Keep value**, **Regex**, or **Expression** for each scalar field, including nested objects and array entries. Rules run in displayed order, after dataset overlay and before built-in placeholders. Use the up/down arrows to put dependencies first.
+5. For file placeholders such as `{{file_base64:../fixtures/sample-result.pdf}}`, choose **File (base64)** for that field and select the local file. Existing data-URL prefixes are preserved. Browser uploads cannot read server files or use server token files/environment-variable selectors.
+6. Generate a payload preview, confirm authorization, and start the test. Stop halts new scheduling; in-flight requests finish within the request timeout. Results include counts, failures, dropped arrivals, p95/p99 latency, and recent requests. Download the report for the full recorded run. Response bodies are limited to 2 KiB in web reports.
+7. Export/import a **Load Lab setup** to preserve configuration, payloads, datasets, and rules together. This bundled format is not a CLI config; its `config` object uses the existing CLI schema, with referenced JSON files contained in `files`. Credential-like headers are excluded by default; explicitly enable **Include credentials in setup export** when needed. Test payload data is still included. Setup and credential data are not saved in browser local storage; Balanced stores pane dimensions only. Failed imports preserve the current setup, and large formatted bundles are accepted up to 16 MiB while compact submissions remain limited to 8 MiB.
+
+External-link icons beside **Payload preview**, **Field rules**, and **Run results** open read-only analysis snapshots in separate tabs. They do not trigger requests or edit testing configuration. Results snapshots contain the latest 100 records; download the full report from the workspace. `/interface-options.html` offers three static interface mockups without replacing the current design or adding testing logic.
+
+Audit fixes include ordered per-API dataset cycling, immutable dataset overlays, matching preview/run record selection, final-rule overlap protection, positive timeout/user validation, explicit redirect/truncation reporting, failed/partial generation outcomes, reconnecting status monitoring, and safe numeric identifier checks. Store large numeric identifiers as strings. CLI global-token behavior remains available; web runs use only explicitly configured request authentication.
+
+Development checks: `go test ./...`, `go vet ./...`, and `node --test internal/web/ui.test.cjs`. Node is not required to run the application.
+
+### Field Rule Examples
+
+Regex generation uses Go/RE2 syntax: character classes, groups, alternation, anchors at the edges, and quantifiers. Lookarounds, backreferences, and word-boundary assertions are not supported. Unbounded quantifiers generate up to 12 extra repetitions, patterns are limited to 2048 bytes, and generation is limited to 4096 steps. Regex rules always produce strings; use an expression for numbers or booleans. Regex matching does not guarantee uniqueness or business validity.
+
+| Field | Source | Rule |
+| --- | --- | --- |
+| `patient_id` | Regex | `PT-[0-9]{8}` |
+| `phone_number` | Regex | `[1-9][0-9]{9}` |
+| `email` | Expression | `lower(body.first_name) + "." + lower(body.last_name) + "@example.test"` |
+| `amount` | Expression | `body.quantity * body.unit_price` |
+| `eligible` | Expression | `body.age >= 18` |
+| `ssn_passport` | Expression | `ssn(body.dob, body.gender)` |
+| `external_id` | Expression | `"record-" + string(sequence)` |
+
+Expressions use the sandboxed [Expr language](https://expr-lang.org/docs/language-definition), not arbitrary JavaScript or natural-language instructions. `body` contains the overlaid payload and earlier generated fields; `sequence` is a run-local generation counter, and `run_id` is a UUID unique to that generation session. Previews and validation use separate sessions and do not consume the actual run's counter. For literal keys containing dots, use `body["key.with.dots"]`. Expressions should reference fields generated by earlier rules, rather than unresolved built-in placeholders. Existing `{{uuid}}`, `{{timestamp}}`, `{{random_int:N}}`, and other CLI placeholders remain supported.
+
+CLI scenarios can also specify rules directly:
+
+```json
+"field_rules": [
+  {"path": ["patient_id"], "regex": "PT-[0-9]{8}"},
+  {"path": ["items", "0", "amount"], "expression": "body.items[0].quantity * body.items[0].unit_price"}
+]
+```
+
+The web server binds only to loopback, rejects foreign browser origins, limits uploads to 8 MiB per submission, and allows one active run at a time. Web runs are limited to one hour, 1000 in-flight requests (10,000 for Multi-API Burst), and a one-minute request timeout. Start with low traffic and only use authorized targets.
+
+### Multi-API Burst and Repeated Runs
+
+Select **Multi-API Burst**, add your APIs, and choose a single burst or repeated bursts at a chosen interval. For example, 100 users and 3 APIs produces 300 requests released through one start gate. **Match burst** sets enough concurrency for the group. Requests are prepared before release; a preparation failure sends none of that group. Busy repeat groups are dropped whole rather than sent partially. Arrival times are still subject to network and server scheduling; confirm deadlocks with server/database logs.
+
+For fresh data, mark identifier rules **Unique**. The runner remembers reserved values across actual runs in `os.UserConfigDir()/load-lab/unique-values.jsonl`, using hashed field-path/value pairs and an OS file lock. CLI configurations may override `unique_history_file`; web submissions may not. A rule such as `"record-" + run_id + "-" + string(sequence)` works for flexible string IDs. Regex identifiers retain their format and retry collisions up to 128 times; if no unused value is found, the run fails instead of sending a duplicate. Keep the history between runs. This protection is local, not a query against your API database. Names and unmarked fields may repeat.
+
+Choose **Reuse existing / shared records** to skip Unique rules and preserve template or overlaid IDs for contention tests. Other rules still run. Use a fixed shared dataset and enable overlay on each API to target the same record deliberately.
+
+Preview up to 10 sample bodies per API and download them without consuming persistent Unique values. Enable **Record sent request bodies** to inspect actual sent JSON beside each response or in the report. It is off by default because bodies may contain sensitive data and large files. Reports include run IDs and per-API summaries; rapid repeated reports no longer overwrite each other.
+
+CLI fields: `execution_mode: "multi_api_burst"`, `burst_mode: "once" | "repeat"`, `burst_interval: "1s"` (minimum 1ms), `data_mode: "fresh" | "existing"`, `record_request_bodies: true | false`, and per-rule `unique: true | false`. `rate` remains required but does not control multi-API burst timing. End-user guidance is served at `/user-manual.html`; developer details are in [the reference manual](docs/USER-MANUAL.html#multi-api-development).
 
 This guide explains how to configure, build, run, and share the load tester on Windows. It is written for developers and QA/testing team members.
 
@@ -17,29 +104,31 @@ The tool currently supports one HTTP request per scenario execution. Multi-step 
 ```text
 go-api-load-tester/
 ├── cmd/
-│   └── loadtest/
-│       └── main.go                         # Program entry point
+│   ├── loadtest/                           # CLI entry point
+│   └── web/                                # Browser-app server entry point
 ├── internal/
-│   ├── config/
-│   │   └── config.go                       # Reads and validates JSON config
-│   ├── engine/
-│   │   └── engine.go                       # Rate, scenario selection, concurrency
-│   ├── generator/
-│   │   └── body.go                         # Builds request bodies and replaces placeholders
-│   ├── transport/
-│   │   └── client.go                       # Sends HTTP requests
-│   └── report/
-│       └── report.go                       # Status and latency reporting
+│   ├── config/                             # Loads and validates test configuration
+│   ├── engine/                             # Schedules requests and coordinates runs
+│   ├── generator/                          # Builds payloads and applies field rules
+│   ├── report/                             # Summaries and per-response recording
+│   ├── transport/                          # HTTP client and request handling
+│   └── web/
+│       ├── server.go                       # Web routes and run handling
+│       └── static/                         # Classic and Balanced UI, shared assets
 ├── configs/
-│   └── patient-import.json                 # Example scenario configuration
-├── data/
-│   ├── patient-request-template.json       # JSON body template
-│   └── test-patients.json                  # Existing test-patient dataset
-├── fixtures/
-│   └── sample-result.pdf                   # Sample PDF encoded into JSON
-├── go.mod                                  # Go module declaration
-└── README.md                               # This guide
+│   ├── examples/                           # Ready-to-edit scenario examples
+│   └── patient-import.json                 # Main sample configuration
+├── data/                                   # Request templates and test datasets
+├── docs/                                   # User guides, scenarios, and design notes
+├── fixtures/                               # Sample files used by request payloads
+├── .github/workflows/                      # Automated Go checks and Pages publishing
+├── go.mod                                  # Go module and direct dependencies
+├── go.sum                                  # Dependency checksums
+├── LICENSE                                 # MIT license and copyright attribution
+└── README.md                               # Setup, usage, and project overview
 ```
+
+Run-generated response reports are written to `responses/`; that directory is excluded from Git so test output is not published with the source.
 
 ### File responsibilities
 

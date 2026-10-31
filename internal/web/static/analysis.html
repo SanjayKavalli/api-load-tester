@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Load Lab | Analysis</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/analysis.js" defer></script>
+  </head>
+  <body class="analysis-page">
+    <header>
+      <a class="brand" href="/"
+        >LOAD<span>LAB</span><span class="brand-tag">ANALYSIS</span></a
+      ><a class="manual-back" href="/">Workspace</a>
+    </header>
+    <main>
+      <div class="analysis-heading">
+        <div>
+          <div class="eyebrow">READ-ONLY SNAPSHOT</div>
+          <h1 id="analysis-title">Analysis</h1>
+          <p id="analysis-status" role="status">Connecting to workspace...</p>
+        </div>
+        <div class="section-actions">
+          <button
+            id="analysis-copy"
+            class="icon-button"
+            type="button"
+            title="Copy selected JSON"
+            aria-label="Copy selected JSON"
+            disabled
+          >
+            <svg><use href="/icons.svg#copy"></use></svg></button
+          ><button
+            id="analysis-download"
+            class="icon-button"
+            type="button"
+            title="Download snapshot"
+            aria-label="Download snapshot"
+            disabled
+          >
+            <svg><use href="/icons.svg#download"></use></svg>
+          </button>
+        </div>
+      </div>
+      <div class="analysis-toolbar">
+        <label class="field">API<select id="analysis-scenario"></select></label
+        ><label class="field" id="analysis-item-label"
+          >Sample / request<select id="analysis-item"></select></label
+        ><label class="field" id="analysis-filter-label"
+          >Filter rows<input
+            id="analysis-filter"
+            type="search"
+            placeholder="Name, field, or status"
+        /></label>
+      </div>
+      <div id="analysis-table" class="analysis-table"></div>
+      <div class="analysis-bodies">
+        <section>
+          <h2 id="analysis-body-title">Request JSON</h2>
+          <pre id="analysis-primary">{}</pre>
+        </section>
+        <section id="analysis-response-panel" hidden>
+          <h2 id="analysis-response-title">Response JSON</h2>
+          <pre id="analysis-response">{}</pre>
+        </section>
+      </div>
+      <footer>
+        <span>LOAD LAB / ANALYSIS</span
+        ><a
+          href="/user-manual.html#analysis-tabs"
+          target="_blank"
+          rel="noopener"
+          >User manual</a
+        >
+      </footer>
+    </main>
+  </body>
+</html>

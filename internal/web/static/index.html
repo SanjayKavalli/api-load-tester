@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Load Lab | API Load Tester</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/ui-switch.css" />
+    <script src="/ui-core.js" defer></script>
+    <script src="/app.js" defer></script>
+    <script src="/snapshots.js" defer></script>
+    <script src="/ui-switch.js" defer></script>
+    {{if .Balanced}}
+    <link rel="stylesheet" href="/balanced.css" />
+    <script src="/balanced.js" defer></script>
+    {{end}}
+  </head>
+  <body class="{{if .Balanced}}balanced-page{{end}}">
+    <header>
+      <div class="brand-lockup">
+        <a class="brand" href="/"
+          >LOAD<span>LAB</span><span class="brand-tag">API TESTING</span></a
+        >
+        <span class="author-credit"
+          >Developed by
+          <a
+            class="author-link"
+            href="https://github.com/SanjayKavalli"
+            target="_blank"
+            rel="noopener"
+            >Sanjay Kavalli</a
+          ></span
+        >
+      </div>
+      <span class="connection"><i></i> Local workspace</span
+      ><a
+        class="manual-link"
+        href="/user-manual.html"
+        target="_blank"
+        rel="noopener"
+        >User manual</a
+      ><a href="#results"
+        >Run results <span aria-hidden="true">&#8599;</span></a
+      >
+    </header>
+    <main>
+      <section class="heading">
+        <div>
+          <div class="eyebrow">TEST WORKSPACE / NEW RUN</div>
+          <h1>Build the traffic.<br /><span>Control the data.</span></h1>
+        </div>
+        <div class="heading-art" aria-hidden="true">
+          <img src="/traffic.svg" alt="" />
+        </div>
+      </section>
+      <div class="workspace">
+        <div class="configuration">
+          <section class="band">
+            <div class="section-title">
+              <h2><span>01</span> Traffic profile</h2>
+              <div class="import-config">
+                <button id="choose-setup" class="text-button" type="button">
+                  Import setup
+                </button>
+                <label for="import-config" class="visually-hidden"
+                  >Setup file</label
+                ><input
+                  id="import-config"
+                  type="file"
+                  accept=".json,application/json"
+                  hidden
+                />
+              </div>
+            </div>
+            <div class="profiles" role="group" aria-label="Traffic profile">
+              <button type="button" data-profile="normal" class="selected">
+                <b>Normal</b><small>Steady traffic</small></button
+              ><button type="button" data-profile="burst">
+                <b>Burst</b><small>Simultaneous users</small></button
+              ><button type="button" data-profile="multi_api_burst">
+                <b>Multi-API Burst</b><small>All APIs together</small></button
+              ><button type="button" data-profile="weighted">
+                <b>Weighted</b><small>Custom percentages</small></button
+              ><button type="button" data-profile="coordinated">
+                <b>Coordinated</b><small>Shared records</small>
+              </button>
+            </div>
+            <div class="input-grid">
+              <label>Duration<input id="duration" value="30s" required /></label
+              ><label
+                >Bursts / second<input
+                  id="rate"
+                  type="number"
+                  min="1"
+                  max="10000"
+                  value="1"
+                  required /></label
+              ><label
+                >Users / burst<input
+                  id="burst"
+                  type="number"
+                  min="1"
+                  max="100000"
+                  value="1"
+                  required /></label
+              ><label
+                >Max in flight<input
+                  id="concurrency"
+                  type="number"
+                  min="1"
+                  max="1000"
+                  value="10"
+                  required /></label
+              ><label
+                >Request timeout<input
+                  id="timeout"
+                  value="10s"
+                  required /></label
+              ><label
+                >Shared record mode<select id="shared-mode">
+                  <option value="fixed">One fixed record</option>
+                  <option value="cycle">Cycle records</option>
+                  <option value="random">Random record</option>
+                </select></label
+              >
+              <label id="burst-mode-field" hidden
+                >Burst schedule<select id="burst-mode">
+                  <option value="once">Single burst</option>
+                  <option value="repeat">Repeated bursts</option>
+                </select></label
+              >
+              <label id="burst-interval-field" hidden
+                >Repeat interval (seconds)<input
+                  id="burst-interval"
+                  type="number"
+                  min="0.001"
+                  step="0.001"
+                  value="1"
+              /></label>
+              <label
+                >Data strategy<select id="data-mode">
+                  <option value="fresh">Fresh generated values</option>
+                  <option value="existing">
+                    Reuse existing / shared records
+                  </option>
+                </select></label
+              >
+            </div>
+            <label id="shared-upload" class="file-line" hidden
+              >Shared dataset
+              <input
+                id="shared-file"
+                type="file"
+                accept=".json,application/json"
+              /><span id="shared-count"></span
+              ><button
+                id="clear-shared"
+                class="text-button"
+                type="button"
+                hidden
+              >
+                Clear
+              </button></label
+            >
+            <div class="traffic-total">
+              <span class="pulse-bars" aria-hidden="true"
+                ><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+                ><i></i><i></i><i></i></span
+              ><span id="traffic-total">1 request / second</span
+              ><span id="weight-total" role="status" aria-live="polite"></span>
+              <button id="match-burst" class="text-button" type="button" hidden>
+                Match burst
+              </button>
+            </div>
+          </section>
+          <section class="band">
+            <div class="section-title">
+              <h2><span>02</span> API scenarios</h2>
+              <button id="add-scenario" class="text-button" type="button">
+                + Add scenario
+              </button>
+            </div>
+            <div
+              id="scenario-tabs"
+              class="tabs"
+              role="tablist"
+              aria-label="Scenarios"
+            ></div>
+            <div id="scenario-editor"></div>
+          </section>
+          <section class="band">
+            <div class="section-title">
+              <h2><span>03</span> Field rules</h2>
+              <div class="section-actions">
+                <span id="field-count" class="muted">0 fields</span
+                ><button
+                  class="icon-button"
+                  type="button"
+                  data-analysis="rules"
+                  title="Open field rules in a new tab"
+                  aria-label="Open field rules in a new tab"
+                >
+                  <svg><use href="/icons.svg#external-link"></use></svg>
+                </button>
+              </div>
+            </div>
+            <div id="field-rules"></div>
+          </section>
+        </div>
+        <aside>
+          <section class="preview-panel">
+            <div class="section-title">
+              <h2>Payload preview</h2>
+              <div class="section-actions">
+                <button
+                  class="icon-button"
+                  type="button"
+                  data-analysis="preview"
+                  title="Open payload preview in a new tab"
+                  aria-label="Open payload preview in a new tab"
+                >
+                  <svg><use href="/icons.svg#external-link"></use></svg>
+                </button>
+                <button
+                  id="preview"
+                  class="icon-button"
+                  type="button"
+                  title="Generate preview"
+                  aria-label="Generate preview"
+                >
+                  <svg><use href="/icons.svg#refresh"></use></svg>
+                </button>
+              </div>
+            </div>
+            <div class="code-label">
+              <span id="preview-name">REQUEST BODY</span><span>JSON</span>
+            </div>
+            <div class="preview-tools">
+              <label
+                >Samples<select id="sample-count">
+                  <option>1</option>
+                  <option selected>3</option>
+                  <option>5</option>
+                  <option>10</option>
+                </select></label
+              ><label
+                >View<select id="preview-sample" disabled>
+                  <option value="0">Sample 1</option>
+                </select></label
+              >
+            </div>
+            <pre id="preview-output">{}</pre>
+            <div class="preview-footer">
+              <span id="preview-state">Not generated</span
+              ><button
+                id="download-samples"
+                class="icon-button"
+                type="button"
+                disabled
+                title="Download generated samples"
+                aria-label="Download generated samples"
+              >
+                <svg><use href="/icons.svg#download"></use></svg></button
+              ><button
+                id="copy-preview"
+                class="icon-button"
+                type="button"
+                title="Copy payload"
+                aria-label="Copy payload"
+              >
+                <svg><use href="/icons.svg#copy"></use></svg>
+              </button>
+            </div>
+          </section>
+          <section class="run-panel">
+            <div class="section-title">
+              <h2>Ready to run</h2>
+              <span class="status-pill" id="run-state">IDLE</span>
+            </div>
+            <label class="consent"
+              ><input id="authorized" type="checkbox" />I am authorized to load
+              test these targets.</label
+            >
+            <label class="consent"
+              ><input id="record-bodies" type="checkbox" />Record sent request
+              bodies (may contain sensitive data)</label
+            >
+            <label class="consent"
+              ><input id="export-secrets" type="checkbox" />Include credentials
+              in setup export</label
+            >
+            <div class="run-actions">
+              <button
+                id="reconnect"
+                class="icon-button"
+                type="button"
+                hidden
+                title="Reconnect run status"
+                aria-label="Reconnect run status"
+              >
+                <svg><use href="/icons.svg#refresh"></use></svg>
+              </button>
+              <button id="start" class="primary" type="button">
+                <svg><use href="/icons.svg#play"></use></svg>Start test</button
+              ><button
+                id="stop"
+                class="icon-button"
+                type="button"
+                disabled
+                title="Stop test"
+                aria-label="Stop test"
+              >
+                <svg><use href="/icons.svg#stop"></use></svg></button
+              ><button
+                id="export"
+                class="icon-button"
+                type="button"
+                title="Export setup"
+                aria-label="Export setup"
+              >
+                <svg><use href="/icons.svg#download"></use></svg>
+              </button>
+            </div>
+          </section>
+        </aside>
+      </div>
+      <section id="results" class="results band">
+        <div class="section-title">
+          <h2><span>04</span> Run results</h2>
+          <div class="section-actions">
+            <button
+              class="icon-button"
+              type="button"
+              data-analysis="results"
+              disabled
+              title="Open results in a new tab"
+              aria-label="Open results in a new tab"
+            >
+              <svg><use href="/icons.svg#external-link"></use></svg>
+            </button>
+            <button
+              id="download-results"
+              class="text-button"
+              type="button"
+              disabled
+            >
+              Download report
+            </button>
+          </div>
+        </div>
+        <div id="metrics" class="metrics">
+          <div><span>Completed</span><strong>--</strong></div>
+          <div><span>Failed</span><strong>--</strong></div>
+          <div><span>Dropped arrivals</span><strong>--</strong></div>
+          <div><span>Elapsed</span><strong>--</strong></div>
+        </div>
+        <div id="result-detail" class="muted">No runs yet.</div>
+        <section id="request-inspector" class="request-inspector" hidden>
+          <div>
+            <h3>Sent request body</h3>
+            <pre id="sent-body"></pre>
+          </div>
+          <div>
+            <h3>Response body</h3>
+            <pre id="received-body"></pre>
+          </div>
+        </section>
+      </section>
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+      <footer>
+        <span>LOAD LAB / LOCAL RUNNER</span
+        ><a href="/interface-options.html" target="_blank" rel="noopener"
+          >Interface options</a
+        ><span>Only test systems you are authorized to access.</span>
+      </footer>
+    </main>
+  </body>
+</html>

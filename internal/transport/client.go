@@ -16,7 +16,8 @@ func New(timeout time.Duration, maxInFlight int, token string) *Client {
 	return &Client{
 		Token: token,
 		HTTP: &http.Client{
-			Timeout: timeout,
+			Timeout:       timeout,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse },
 			Transport: &http.Transport{
 				MaxIdleConns:        maxInFlight,
 				MaxIdleConnsPerHost: maxInFlight,
@@ -28,11 +29,13 @@ func New(timeout time.Duration, maxInFlight int, token string) *Client {
 }
 
 type Response struct {
-	StatusCode  int
-	ContentType string
-	Body        []byte
-	Duration    time.Duration
-	Err         error
+	StatusCode        int
+	ContentType       string
+	Body              []byte
+	Duration          time.Duration
+	Err               error
+	Truncated         bool
+	DeclaredBodyBytes int64
 }
 
 func (c *Client) Do(method, url string, headers map[string]string, body []byte) Response {
@@ -63,21 +66,20 @@ func (c *Client) Do(method, url string, headers map[string]string, body []byte) 
 	defer resp.Body.Close()
 
 	// Bound response memory usage to 2 MiB per response.
-	responseBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
-	if readErr != nil {
-		return Response{
-			StatusCode:  resp.StatusCode,
-			ContentType: resp.Header.Get("Content-Type"),
-			Body:        responseBody,
-			Duration:    time.Since(start),
-			Err:         readErr,
-		}
+	const limit = 2 << 20
+	responseBody, readErr := io.ReadAll(io.LimitReader(resp.Body, limit+1))
+	truncated := len(responseBody) > limit
+	if truncated {
+		responseBody = responseBody[:limit]
 	}
 
 	return Response{
-		StatusCode:  resp.StatusCode,
-		ContentType: resp.Header.Get("Content-Type"),
-		Body:        responseBody,
-		Duration:    time.Since(start),
+		StatusCode:        resp.StatusCode,
+		ContentType:       resp.Header.Get("Content-Type"),
+		Body:              responseBody,
+		Duration:          time.Since(start),
+		Err:               readErr,
+		Truncated:         truncated,
+		DeclaredBodyBytes: resp.ContentLength,
 	}
 }

@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Load Lab | User Manual</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="manual-page">
+    <header>
+      <a class="brand" href="/"
+        >LOAD<span>LAB</span><span class="brand-tag">USER MANUAL</span></a
+      ><a class="manual-back" href="/">Back to workspace</a>
+    </header>
+    <main>
+      <div class="manual-heading">
+        <div class="eyebrow">HELP / USER GUIDE</div>
+        <h1>Your guide to a test run.</h1>
+        <p>Choose your APIs, prepare the data, and review the results.</p>
+      </div>
+      <div class="manual-layout">
+        <nav class="manual-nav" aria-label="Manual topics">
+          <a href="#quick-start">First run</a
+          ><a href="#workspace-layouts">Classic & Balanced</a
+          ><a href="#traffic-profiles">Traffic profiles</a
+          ><a href="#multi-api-burst">Multi-API Burst</a
+          ><a href="#repeated-runs">Repeated runs</a
+          ><a href="#request-bodies">Inspect request bodies</a
+          ><a href="#traffic-settings">Traffic settings</a
+          ><a href="#api-scenarios">APIs & percentages</a
+          ><a href="#payloads">Request payloads</a
+          ><a href="#datasets">Test datasets</a
+          ><a href="#field-rules">Field rules</a
+          ><a href="#headers">Headers & tokens</a
+          ><a href="#preview">Payload preview</a
+          ><a href="#analysis-tabs">Analysis tabs</a
+          ><a href="#running">Start & stop</a><a href="#results">Run results</a
+          ><a href="#saved-setups">Saved setups</a
+          ><a href="#troubleshooting">Common fixes</a
+          ><a href="#limits">Limits & privacy</a>
+        </nav>
+        <article class="manual-content" aria-label="User manual">
+          <section id="workspace-layouts">
+            <h2>Classic & Balanced Workspaces</h2>
+            <p>
+              When both interfaces are enabled, use the
+              <b>Classic / Balanced</b> links in the header to open the other
+              layout in a separate tab. Your current tab and its editable setup
+              remain where they are. The Classic interface is preserved at
+              <a href="/classic" target="_blank" rel="noopener">/classic</a>;
+              the new Balanced workspace is at
+              <a href="/balanced" target="_blank" rel="noopener">/balanced</a>.
+            </p>
+            <p>
+              Both layouts use the same test controls, request generator,
+              runner, setup files, tooltips, and analysis views. Import the same
+              exported setup into each tab to compare them. Each tab has its own
+              form; only one load-test run can be active on the shared runner.
+              Switching focus refreshes the displayed run status.
+            </p>
+            <h3>Balanced Layout</h3>
+            <p>
+              The compact <b>APIs</b> sidebar shows method, name, path, and
+              percentage where applicable. Use the <b>+</b> beside APIs to add a
+              request. Selecting a row opens its existing request settings. The
+              filter narrows the visible list only: it does not exclude any API
+              from a test.
+            </p>
+            <p>
+              Use <b>Request</b>, <b>Field rules</b>, and
+              <b>Payload preview</b> to focus the middle pane. Headers, bearer
+              tokens, expected status codes, body uploads, and scenario datasets
+              remain in the Request view. The existing external-link icons still
+              open larger read-only analysis tabs.
+            </p>
+            <p>
+              <b>Traffic mode</b> contains every existing option: Normal, Burst,
+              Multi-API Burst, Weighted, and Coordinated. Their execution
+              behavior is unchanged. Percentage allocation, shared records,
+              single/repeated bursts, data strategy, Unique rules, and recording
+              controls work as described elsewhere in this guide.
+            </p>
+            <h3>Resize the Panes</h3>
+            <p>
+              Drag the vertical divider beside the API list to give more space
+              to the payload. Drag the divider beside run settings to change its
+              width. Drag the divider above the Run console to adjust its
+              height. When inspecting a response, the divider between request
+              and response adjusts their relative widths.
+            </p>
+            <p>
+              Dividers can also receive keyboard focus: use arrow keys to
+              resize, Shift for larger steps, and Home/End for the
+              minimum/maximum. Double-click a divider to reset it, or use
+              <b>Reset pane sizes</b> above the workspace. Width limits keep
+              controls usable. On small screens the panes stack and desktop
+              dividers are hidden.
+            </p>
+            <p>
+              Only numerical pane dimensions are saved in this browser.
+              Payloads, tokens, setup contents, and test modes are not stored as
+              layout preferences. The layout reset does not change your API
+              configuration.
+            </p>
+            <h3>Enable or Disable an Interface</h3>
+            <p>
+              The person starting the local runner can enable both pages for
+              comparison or disable either one afterward. This is a startup
+              setting, not a test scenario setting. Ask the developer or
+              operator to use <code>-ui both</code>, <code>-ui classic</code>,
+              or <code>-ui balanced</code>. A disabled page is unavailable; the
+              test APIs and workload format remain the same.
+            </p>
+          </section>
+          <section id="quick-start">
+            <h2>First Run</h2>
+            <p class="manual-warning">
+              Only test APIs you are authorized to use. Start with low traffic
+              against a test or staging system. A run can create or change real
+              records; Load Lab does not remove them afterward.
+            </p>
+            <ol>
+              <li>
+                Select a traffic profile and a short duration, such as
+                <code>10s</code>.
+              </li>
+              <li>Enter the API method and full target URL.</li>
+              <li>Upload a JSON request payload, or edit the request body.</li>
+              <li>
+                If testing several APIs, use <b>Add scenario</b>. Set
+                percentages totaling <b>100%</b> for Normal, Burst, or Weighted,
+                or select <b>Multi-API Burst</b> to send every API together.
+              </li>
+              <li>
+                Add any required headers or bearer token. Set field rules if
+                values should change between requests.
+              </li>
+              <li>
+                Use the refresh button in <b>Payload preview</b>. Check the
+                generated data.
+              </li>
+              <li>
+                Confirm authorization, select <b>Start test</b>, and review
+                <b>Run results</b>.
+              </li>
+            </ol>
+          </section>
+          <section id="traffic-profiles">
+            <h2>Traffic Profiles</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Profile</th>
+                  <th>When to use it</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Normal</td>
+                  <td>Steady traffic. Starts with one user per burst.</td>
+                </tr>
+                <tr>
+                  <td>Burst</td>
+                  <td>
+                    Several users arriving together. Starts with 100 users per
+                    burst; adjust this before running.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Weighted</td>
+                  <td>
+                    A custom mix of APIs, such as 30% create, 30% update, and
+                    40% search. Add your own scenarios and percentages.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Multi-API Burst</td>
+                  <td>
+                    Release every API together in one immediate group, or repeat
+                    complete groups at a chosen interval. Percentages do not
+                    apply.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Coordinated</td>
+                  <td>
+                    Every API runs for every virtual user, with the selected
+                    shared record. Percentages do not apply.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              Normal, Burst, and Weighted select APIs using their configured
+              percentages. Coordinated sends APIs together; it does not wait for
+              one response before calling another or pass IDs between API calls.
+            </p>
+          </section>
+          <section id="multi-api-burst">
+            <h2>Multi-API Burst</h2>
+            <p>
+              Use this profile to test several APIs at the same time, for
+              example to investigate competing updates, locking, or contention.
+            </p>
+            <ol>
+              <li>
+                Select <b>Multi-API Burst</b> and add each API with its own URL,
+                payload, headers, and expected responses.
+              </li>
+              <li>
+                Set <b>Users / burst</b>. Three APIs with 100 users produces
+                <b>300 requests per burst</b>: 100 requests to each API.
+              </li>
+              <li>
+                Choose <b>Single burst</b> to send one group immediately, or
+                <b>Repeated bursts</b> with a repeat interval and duration.
+              </li>
+              <li>
+                Set <b>Max in flight</b> to at least the displayed request
+                count. <b>Match burst</b> sets this for you.
+              </li>
+              <li>Generate samples, confirm authorization, and start.</li>
+            </ol>
+            <p>
+              Percentages do not apply. The runner prepares all request bodies
+              before opening one shared start gate. If any body cannot be
+              prepared, that group is not sent. Preparation time is not included
+              in the requested repeat interval; the next interval starts after
+              release. If earlier requests leave too few free slots, an entire
+              repeat group is skipped and counted as dropped arrivals.
+            </p>
+            <p>
+              All requests are released together, but network and server
+              scheduling can produce small arrival-time differences. Timeouts or
+              slow responses may suggest locking problems; confirm actual
+              deadlocks using server or database logs. This is not a sequence of
+              dependent API calls.
+            </p>
+          </section>
+          <section id="repeated-runs">
+            <h2>Repeated Runs & Unique Values</h2>
+            <p>
+              <b>Fresh generated values</b> runs your generation rules. Mark an
+              identifier rule <b>Unique</b> when that field must not reuse
+              values from earlier runs on this machine. Only marked fields are
+              protected; ordinary names and unmarked values may repeat.
+            </p>
+            <p>
+              The local runner keeps a persistent history of reserved values. It
+              retries regex generation when a value has already been used. For
+              flexible string identifiers, an Expression such as
+              <code>"record-" + run_id + "-" + string(sequence)</code> provides
+              a run-specific ID. <code>run_id</code> changes for every actual
+              run; <code>sequence</code> starts at 1 for that run. Use a regex
+              instead when the API requires a strict format or length.
+            </p>
+            <p>
+              If no unused value is found within 128 attempts, generation fails
+              rather than silently sending a duplicate. Expand the allowed
+              pattern or use a run-specific expression. A small format such as
+              <code>[0-9]</code> only has ten values, so it cannot support
+              unlimited fresh runs. Preview uses a separate temporary history
+              and does not reserve live values.
+            </p>
+            <p>
+              For contention tests, select
+              <b>Reuse existing / shared records</b>, upload a shared dataset,
+              select <b>One fixed record</b>, and enable overlay on each API.
+              Rules marked Unique are skipped, preserving their literal or
+              dataset IDs; other rules still run. The same record can then be
+              targeted intentionally by every user. A Unique rule is shown as
+              <b>Reused</b> in this mode.
+            </p>
+            <p>
+              The history is local, not a check against your API database or
+              other machines. Keep the same history between runs and back it up.
+              Clearing it or moving to a new machine removes that protection.
+              Values reserved during failed or stopped preparation remain
+              reserved, even when not sent.
+            </p>
+          </section>
+          <section id="request-bodies">
+            <h2>Generate & Inspect Request Bodies</h2>
+            <p>
+              Choose 1, 3, 5, or 10 <b>Samples</b> in Payload preview, then
+              select refresh. Use <b>View</b> to inspect each sample and the
+              download button to save the generated examples. Samples are not
+              requests sent to your target; random values and run IDs will
+              differ during the actual run.
+            </p>
+            <p>
+              To inspect exactly what was sent, enable
+              <b>Record sent request bodies</b> before starting. After the run,
+              select <b>Inspect</b> beside a request to see its complete sent
+              JSON and the recorded response. The downloaded report pairs these
+              bodies and includes the run ID. If recording was off, the request
+              body cannot be recovered from the report.
+            </p>
+            <p class="manual-warning">
+              Request-body recording is off by default. It can expose test
+              identities, embedded files, and other sensitive values, and large
+              bodies increase report size. Store reports securely. Response
+              bodies are still limited to 2 KiB in web reports.
+            </p>
+          </section>
+          <section id="traffic-settings">
+            <h2>Traffic Settings</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Setting</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Duration</td>
+                  <td>
+                    How long to schedule requests. Examples: <code>30s</code>,
+                    <code>2m</code>, <code>500ms</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Bursts / second</td>
+                  <td>How many groups start each second.</td>
+                </tr>
+                <tr>
+                  <td>Users / burst</td>
+                  <td>How many virtual users start in each group.</td>
+                </tr>
+                <tr>
+                  <td>Max in flight</td>
+                  <td>
+                    The maximum simultaneous requests. Arrivals beyond this
+                    limit are dropped rather than queued.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Request timeout</td>
+                  <td>
+                    The maximum wait for each response, for example
+                    <code>10s</code>.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              For Normal, Burst, and Weighted: planned requests per second =
+              bursts per second &times; users per burst. In Coordinated mode,
+              multiply that by the number of APIs too.
+            </p>
+            <p>
+              Example: 2 bursts per second with 10 users per burst plans 20
+              requests per second. With 3 coordinated APIs, it plans 60. Actual
+              throughput depends on response speed and the in-flight limit.
+            </p>
+          </section>
+          <section id="api-scenarios">
+            <h2>APIs & Percentages</h2>
+            <p>
+              Each scenario is one API request. Give it a unique name, select
+              its HTTP method, and enter the full URL. Set the request body,
+              data, and authentication separately for each API.
+            </p>
+            <p>
+              Choose <b>Add scenario</b> to include another API. Switch between
+              the API tabs to edit them. The trash button removes the selected
+              API.
+            </p>
+            <h3 id="percentages">Choose Your Split</h3>
+            <p>
+              For Normal, Burst, and Weighted, each API needs a whole-number
+              percentage from 1 to 100. All percentages together must equal
+              <b>100%</b>. Examples: <b>30 / 30 / 40</b>,
+              <b>25 / 25 / 25 / 25</b>, or ten APIs at <b>10%</b> each.
+            </p>
+            <p>
+              The live total shows the remaining or excess percentage. Start
+              stays disabled until the allocation is valid. These are selection
+              probabilities, so a short run may not produce the exact percentage
+              of requests for each API.
+            </p>
+          </section>
+          <section id="payloads">
+            <h2>Request Payloads</h2>
+            <p>
+              Select <b>Upload request payload</b> and choose a local JSON
+              object, not an array. You can also edit the request body directly.
+              Uploading a replacement payload clears that API's field rules.
+            </p>
+            <pre><code>{
+  "patient_id": "",
+  "first_name": "Test",
+  "quantity": 2,
+  "unit_price": 15,
+  "amount": 0
+}</code></pre>
+            <p>
+              Leave a field unchanged with <b>Keep value</b>, or use
+              <a href="#field-rules">field rules</a> to generate it. Nested
+              object fields and array entries are supported.
+            </p>
+          </section>
+          <section id="datasets">
+            <h2>Test Datasets</h2>
+            <p>
+              A dataset is a non-empty JSON array of records. Use it when your
+              API needs existing test identities or known values.
+            </p>
+            <pre><code>[
+  {"patient_id": "TEST-001", "first_name": "Alex"},
+  {"patient_id": "TEST-002", "first_name": "Sam"}
+]</code></pre>
+            <p>
+              Upload a <b>Scenario dataset</b> for one API. Enable
+              <b>Overlay dataset values</b> to replace matching payload keys.
+              Extra dataset keys are ignored; nested objects are matched
+              recursively. Field rules run after the overlay and can replace
+              these values again.
+            </p>
+            <p>
+              <b>Cycle records</b> uses records in order;
+              <b>Random record</b> selects a record randomly.
+            </p>
+            <p>
+              For Coordinated mode, upload a <b>Shared dataset</b> and enable
+              overlay on each API that should use it. Every API for the same
+              virtual user receives the same selected record. Shared record mode
+              can be fixed (the first record), cycle, or random. Coordinated
+              runs use the shared dataset rather than individual scenario
+              datasets.
+            </p>
+            <p>
+              Select <b>Clear</b> to remove a dataset. Preview always uses the
+              first record; a run uses your chosen selection mode.
+            </p>
+          </section>
+          <section id="field-rules">
+            <h2>Field Rules</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Value source</th>
+                  <th>What it does</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Keep value</td>
+                  <td>Preserves the payload value, or its dataset overlay.</td>
+                </tr>
+                <tr>
+                  <td>Regex</td>
+                  <td>Generates a matching string for each request.</td>
+                </tr>
+                <tr>
+                  <td>Expression</td>
+                  <td>
+                    Calculates a value using other fields, including numbers and
+                    true/false values.
+                  </td>
+                </tr>
+                <tr>
+                  <td>File (base64)</td>
+                  <td>Embeds a locally selected file into a string field.</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              Rules run in displayed order, after dataset overlay. Use the
+              up/down arrows to put a rule before any rule that depends on it.
+              Refer to other fields using <code>body.field_name</code>, or
+              <code>body["key.with.dots"]</code> for a key containing dots.
+            </p>
+            <h3 id="rule-examples">Examples</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Pattern or expression</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Regex: patient ID</td>
+                  <td><code>PT-[0-9]{8}</code></td>
+                </tr>
+                <tr>
+                  <td>Regex: name</td>
+                  <td><code>[A-Z][a-z]{5,9}</code></td>
+                </tr>
+                <tr>
+                  <td>Expression: total</td>
+                  <td><code>body.quantity * body.unit_price</code></td>
+                </tr>
+                <tr>
+                  <td>Expression: email</td>
+                  <td><code>lower(body.first_name) + "@example.test"</code></td>
+                </tr>
+                <tr>
+                  <td>Expression: eligibility</td>
+                  <td><code>body.age &gt;= 18</code></td>
+                </tr>
+                <tr>
+                  <td>Expression: synthetic identifier</td>
+                  <td><code>ssn(body.dob, body.gender)</code></td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              Regex always produces strings, not numbers, and does not guarantee
+              unique values. Use an Expression when you need a numeric or
+              boolean result. Common regex features such as character classes,
+              groups, alternatives, and repeats work; lookarounds,
+              backreferences, and word-boundary assertions do not. Expressions
+              are calculations, not free-text instructions or JavaScript.
+            </p>
+            <p>
+              The synthetic identifier helper expects a birth date such as
+              <code>1995-04-15</code> and a supported gender value such as
+              <code>female</code> or <code>male</code>. It produces test data,
+              not a validated real-world identity number.
+            </p>
+            <h3>Files & Existing Placeholders</h3>
+            <p>
+              For a string field, select <b>File (base64)</b> and choose a local
+              file, such as a PDF. An existing
+              <code>{{file_base64:...}}</code> marker is replaced while keeping
+              its surrounding data-URL prefix. Otherwise, the field receives the
+              file's raw base64 text.
+            </p>
+            <p>
+              Existing placeholders such as <code>{{uuid}}</code>,
+              <code>{{timestamp}}</code>, <code>{{sequence}}</code>, and
+              <code>{{random_int:8}}</code> are also resolved. They run after
+              field rules, so an expression should refer to literal values or
+              earlier rules rather than an unresolved placeholder.
+            </p>
+          </section>
+          <section id="headers">
+            <h2>Headers & Tokens</h2>
+            <p>
+              Open <b>Headers & response settings</b> for the selected API.
+              Enter headers as a JSON object with string values.
+            </p>
+            <pre><code>{
+  "Content-Type": "application/json",
+  "X-Test-Client": "load-lab"
+}</code></pre>
+            <p>
+              If the API needs bearer authentication, enter the token in
+              <b>Bearer token</b>. It updates the Authorization header. Each API
+              can have its own credentials.
+            </p>
+            <p>
+              Enter <b>Expected status codes</b> separated by commas, such as
+              <code>200, 201</code>. Other responses count as failures. Leaving
+              this blank accepts any 2xx response.
+            </p>
+            <p>
+              Use test credentials. Credential headers are excluded from setup
+              exports by default. Enable
+              <b>Include credentials in setup export</b> only when needed, and
+              keep that file private. Request payload data is still included.
+            </p>
+          </section>
+          <section id="preview">
+            <h2>Payload Preview</h2>
+            <p>
+              Select the refresh button in <b>Payload preview</b> to generate a
+              sample. It uses the same generation rules as a run without sending
+              a request to the target API. Enter valid API settings and
+              percentages first.
+            </p>
+            <p>
+              Check types, formats, dependent values, and embedded files. The
+              copy button copies the displayed JSON. Generate another preview
+              after changing the setup. Random values in the actual run will
+              differ.
+            </p>
+          </section>
+          <section id="running">
+            <h2>Start & Stop</h2>
+            <p>
+              If monitoring loses its connection, the status shows
+              <b>DISCONNECTED</b> and retries automatically. Use the reconnect
+              icon to retry immediately. Stop remains available for an active
+              run; monitoring failure does not alter its configured workload.
+            </p>
+            <p>
+              Confirm that you are authorized to test the targets, then select
+              <b>Start test</b>. Only one run can be active at a time.
+            </p>
+            <p>
+              <b>Stop</b> prevents new requests from being scheduled. Requests
+              already in flight finish or time out, so the state may show
+              STOPPING briefly. Results are available when the run finishes or
+              stops.
+            </p>
+            <p>
+              Changing the form does not change a run already in progress. Your
+              current browser setup is not automatically saved; export it before
+              closing or refreshing the page.
+            </p>
+          </section>
+          <section id="analysis-tabs">
+            <h2>Open a Larger Analysis View</h2>
+            <p>
+              Select the external-link icon beside <b>Payload preview</b>,
+              <b>Field rules</b>, or <b>Run results</b> to open a separate tab.
+              Your current form and selected testing mode stay unchanged.
+            </p>
+            <p>
+              These are <b>read-only snapshots</b>, not live views or extra
+              tests. Preview offers API and sample selection; rules show the
+              configured order, patterns, expressions, and Unique flags; results
+              show per-API summaries and the latest 100 recorded requests with
+              paired bodies.
+            </p>
+            <p>
+              Use the copy or download icons for the selected JSON or snapshot.
+              The full report remains available in the main workspace. To see
+              later edits or a later run, open a fresh snapshot. If a snapshot
+              expires or is refreshed after its workspace connection closes,
+              reopen it from the workspace.
+            </p>
+            <p>
+              Snapshots are transferred between local same-origin tabs in
+              memory, without putting request bodies or tokens in the URL or
+              browser local storage. Downloaded snapshots can contain sensitive
+              request or response data.
+            </p>
+            <p>
+              <a href="/interface-options.html" target="_blank" rel="noopener"
+                >Interface options</a
+              >
+              contains three static mockups for review. They do not execute
+              requests or replace the current interface.
+            </p>
+          </section>
+          <section id="results">
+            <h2>Run Results</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Result</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Completed</td>
+                  <td>
+                    Requests that finished, including failed responses and
+                    network errors.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Failed</td>
+                  <td>
+                    Network errors and responses outside the expected status
+                    codes.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Dropped arrivals</td>
+                  <td>
+                    Planned requests not sent because the in-flight limit was
+                    reached.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Elapsed</td>
+                  <td>
+                    Time spent scheduling and waiting for active requests to
+                    finish.
+                  </td>
+                </tr>
+                <tr>
+                  <td>p95 / p99</td>
+                  <td>
+                    95% / 99% of recorded requests finished within this response
+                    time.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Body errors</td>
+                  <td>
+                    Requests that could not be generated from the payload and
+                    rules.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              The request table shows the latest 100 responses. Select
+              <b>Download report</b> for all recorded responses and the summary.
+              Web reports retain up to 2 KiB of each response body.
+            </p>
+          </section>
+          <section id="saved-setups">
+            <h2>Saved Setups</h2>
+            <p>
+              The export button beside Start saves APIs, payloads, datasets,
+              headers, and field rules in one JSON file. Use
+              <b>Import setup</b> to restore that file later.
+            </p>
+            <p>
+              Import setup accepts a Load Lab export, not a standalone request
+              body or developer configuration. Use
+              <b>Upload request payload</b> for a request-body file instead.
+              Exports contain test data; store them securely. Authorization,
+              token, cookie, secret, and API-key headers are excluded unless you
+              enable credential export.
+            </p>
+            <p>
+              Imports are checked before replacing your workspace. If a file is
+              invalid, your current setup stays intact. The same setup file can
+              be selected again. A valid replacement payload can also be
+              uploaded when the current request JSON is incomplete.
+            </p>
+            <p>
+              Identifiers above <code>9007199254740991</code> must be JSON
+              strings, not numbers. For example, use
+              <code>"external_id": "9007199254740993"</code>. Unsafe numeric
+              integers are rejected rather than rounded. Duplicate or
+              parent/child-overlapping field rules are also rejected.
+            </p>
+          </section>
+          <section id="troubleshooting">
+            <h2>Common Fixes</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Issue</th>
+                  <th>What to check</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Start is disabled</td>
+                  <td>
+                    Wait for the current run to finish, or correct the API
+                    percentages to total 100%.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Invalid JSON</td>
+                  <td>
+                    Check commas and double quotes. Payloads must be objects;
+                    datasets must be non-empty arrays of objects.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Rule error</td>
+                  <td>
+                    Check the pattern or expression, field names, value types,
+                    and rule order.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Server file reference rejected</td>
+                  <td>
+                    Select File (base64) for that string field and upload the
+                    local file.
+                  </td>
+                </tr>
+                <tr>
+                  <td>401 or 403 responses</td>
+                  <td>
+                    Check the API's test token, permissions, and required
+                    headers.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Network errors or timeouts</td>
+                  <td>
+                    Check the target URL, API availability, VPN, and request
+                    timeout.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Dropped arrivals</td>
+                  <td>
+                    Lower the request rate or users per burst. Only increase Max
+                    in flight if the test system can support it.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+          <section id="limits">
+            <h2>Limits & Privacy</h2>
+            <p>
+              The interface is local to this machine. It accepts one active run,
+              a duration up to 1 hour, up to 1,000 in-flight requests, and a
+              request timeout up to 1 minute. Bursts per second may be
+              1..10,000; users per burst may be 1..100,000. These are tool
+              limits, not recommended starting loads.
+            </p>
+            <p>
+              Multi-API Burst allows up to 10,000 in-flight requests and 10,000
+              requests per group. The full group must fit in the configured
+              concurrency. Large payloads and high concurrency can require
+              substantial memory; start small.
+            </p>
+            <p>
+              JSON uploads are limited to 6 MiB per file, attachments to 4 MiB,
+              and the complete submission to 8 MiB. Embedded file data expands
+              in base64, so a setup with several attachments may exceed the
+              submission limit.
+            </p>
+            <p>
+              Setup bundles may be up to 16 MiB on disk to accommodate formatted
+              exports, but their compact request submission must still fit
+              within 8 MiB. New exports use compact JSON.
+            </p>
+            <p>
+              Cycle mode now visits each scenario's dataset in order.
+              Coordinated and Multi-API Burst use the shared dataset only;
+              per-scenario dataset controls are disabled there. Source dataset
+              arrays are copied before generation.
+            </p>
+            <p>
+              Redirect responses are reported directly rather than automatically
+              changing a POST into a different request. Generation errors
+              produce failed or partial outcomes, and the report separates
+              scheduled, generated, sent, and completed counts. Truncated
+              responses are marked explicitly.
+            </p>
+            <p>
+              Payloads and credentials are handled by your local runner. They
+              are sent to the targets you configure. Do not use production
+              patient data or other sensitive real-world records for testing.
+              Downloaded reports may contain API response data; treat them as
+              confidential.
+            </p>
+          </section>
+        </article>
+      </div>
+      <footer>
+        <span>LOAD LAB / USER MANUAL</span><a href="/">Back to workspace</a>
+      </footer>
+    </main>
+  </body>
+</html>

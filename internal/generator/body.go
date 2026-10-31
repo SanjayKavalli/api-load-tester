@@ -25,18 +25,35 @@ var sequence atomic.Uint64
 //   - Extra keys in a dataset record are ignored.
 //   - Nested JSON objects are overlaid recursively.
 func BuildBody(template map[string]any, datasetRecord map[string]any, overlay bool, baseDir string) ([]byte, error) {
+	return BuildBodyWithRules(template, datasetRecord, overlay, baseDir, nil)
+}
+
+func BuildBodyWithRules(template map[string]any, datasetRecord map[string]any, overlay bool, baseDir string, rules []FieldRule) ([]byte, error) {
+	return BuildBodyWithSession(template, datasetRecord, overlay, baseDir, rules, nil)
+}
+
+func BuildBodyWithSession(template map[string]any, datasetRecord map[string]any, overlay bool, baseDir string, rules []FieldRule, session *Session) ([]byte, error) {
 	body := deepCopyMap(template)
 	if overlay && datasetRecord != nil {
 		overlayExistingKeys(body, datasetRecord)
 	}
 
 	n := sequence.Add(1)
+	if session != nil {
+		n = session.counter.Add(1)
+	}
+	if err := applyRules(body, rules, n, session); err != nil {
+		return nil, err
+	}
 	resolved, err := resolveValue(body, baseDir, n)
 	if err != nil {
 		return nil, err
 	}
 	resolvedBody, err := json.Marshal(resolved)
 	if err != nil {
+		return nil, err
+	}
+	if err := ValidateNumbers(resolved); err != nil {
 		return nil, err
 	}
 
@@ -58,7 +75,7 @@ func overlayExistingKeys(target, source map[string]any) {
 		}
 
 		// Replace only keys present in the request template.
-		target[key] = sourceValue
+		target[key] = deepCopyValue(sourceValue)
 	}
 }
 

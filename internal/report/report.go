@@ -22,6 +22,23 @@ type Stats struct {
 	Statuses  map[int]int
 }
 
+type ScenarioSummary struct {
+	Completed     int     `json:"completed"`
+	Failed        int     `json:"failed"`
+	NetworkErrors int     `json:"network_errors"`
+	P95Ms         float64 `json:"p95_ms"`
+	P99Ms         float64 `json:"p99_ms"`
+}
+
+func (s *Stats) Snapshot() ScenarioSummary {
+	result := ScenarioSummary{Completed: s.Count, Failed: s.Failed, NetworkErrors: s.Network}
+	if len(s.Durations) > 0 {
+		result.P95Ms = percentile(s.Durations, 95)
+		result.P99Ms = percentile(s.Durations, 99)
+	}
+	return result
+}
+
 func NewStats() *Stats {
 	return &Stats{Statuses: make(map[int]int)}
 }

@@ -10,6 +10,32 @@ import (
 	"time"
 )
 
+func TestRepeatedTimestampDoesNotOverwriteReports(t *testing.T) {
+	dir := t.TempDir()
+	started := time.Date(2026, 10, 30, 10, 0, 0, 0, time.UTC)
+	first, err := NewRecorder(dir, started, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := first.Close(RunSummary{RunID: "first"}); err != nil {
+		t.Fatal(err)
+	}
+	second, err := NewRecorder(dir, started, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := second.Close(RunSummary{RunID: "second"}); err != nil {
+		t.Fatal(err)
+	}
+	if first.Path() == second.Path() {
+		t.Fatal("reports share a path")
+	}
+	raw, _ := os.ReadFile(first.Path())
+	if !strings.Contains(string(raw), `"first"`) {
+		t.Fatal("first report was overwritten")
+	}
+}
+
 func TestRecorderWritesValidJSONFile(t *testing.T) {
 	dir := t.TempDir()
 	started := time.Date(2026, 10, 24, 10, 45, 30, 0, time.UTC)

@@ -3,9 +3,34 @@ package transport
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestRedirectIsReportedWithoutChangingMethod(t *testing.T) {
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/target" {
+			called = true
+		}
+		http.Redirect(w, r, "/target", http.StatusFound)
+	}))
+	defer server.Close()
+	response := New(time.Second, 1, "").Do("POST", server.URL, nil, []byte(`{}`))
+	if response.StatusCode != 302 || called {
+		t.Fatal("redirect changed the tested request", response.StatusCode, called)
+	}
+}
+
+func TestTransportReportsTruncation(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(strings.Repeat("x", 3<<20))) }))
+	defer server.Close()
+	response := New(time.Second, 1, "").Do("GET", server.URL, nil, nil)
+	if response.Err != nil || !response.Truncated || len(response.Body) != 2<<20 {
+		t.Fatal("truncation was not surfaced", response.Err, response.Truncated, len(response.Body))
+	}
+}
 
 func TestDoIncludesResponseBodyAndContentType(t *testing.T) {
 	const responseBody = `{"is_error":false,"message":"ok"}`
