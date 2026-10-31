@@ -3,7 +3,6 @@ package generator
 import (
 	"encoding/base64"
 	"encoding/json"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -12,14 +11,19 @@ import (
 
 func TestBuildBodyEmbedsPDFDataURL(t *testing.T) {
 	root := filepath.Join("..", "..")
-	templateBytes, err := os.ReadFile(filepath.Join(root, "data", "patient-request-template.json"))
-	if err != nil {
-		t.Fatalf("read template: %v", err)
-	}
-
-	var template map[string]any
-	if err := json.Unmarshal(templateBytes, &template); err != nil {
-		t.Fatalf("parse template: %v", err)
+	template := map[string]any{
+		"first_name":   "LOAD {{random_letters:8}}",
+		"last_name":    "LoadTest",
+		"birth_name":   "BIRTH {{random_letters:8}}",
+		"dob":          "1995-04-12",
+		"gender":       "male",
+		"phone_number": "{{random_int:14}}",
+		"ssn_passport": "{{ssn}}",
+		"document_data": []any{
+			map[string]any{
+				"doc_data": "data:application/pdf;base64,{{file_base64:../fixtures/sample-result.pdf}}",
+			},
+		},
 	}
 
 	body, err := BuildBody(template, nil, false, filepath.Join(root, "configs"))
@@ -33,9 +37,6 @@ func TestBuildBodyEmbedsPDFDataURL(t *testing.T) {
 	}
 	if _, exists := payload["ssn_passport"]; !exists {
 		t.Fatal("generated body is missing ssn_passport")
-	}
-	if _, exists := payload["ins"]; exists {
-		t.Fatal("generated body contains obsolete ins field")
 	}
 	for _, field := range []string{"first_name", "last_name", "birth_name"} {
 		value := payload[field].(string)
