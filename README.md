@@ -43,7 +43,7 @@ Use the same exported setup to compare pages. Each browser tab has an independen
 3. Optionally upload scenario datasets (JSON arrays of objects), or a shared dataset for coordinated runs. Choose fixed/shared, cycle, or random record selection. Preview uses the first dataset record; actual runs use the configured selection strategy.
 4. Choose **Keep value**, **Regex**, or **Expression** for each scalar field, including nested objects and array entries. Rules run in displayed order, after dataset overlay and before built-in placeholders. Use the up/down arrows to put dependencies first.
 5. For file placeholders such as `{{file_base64:../fixtures/sample-result.pdf}}`, choose **File (base64)** for that field and select the local file. Existing data-URL prefixes are preserved. Browser uploads cannot read server files or use server token files/environment-variable selectors.
-6. Generate a payload preview, confirm authorization, and start the test. Stop halts new scheduling; in-flight requests finish within the request timeout. Results include counts, failures, dropped arrivals, p95/p99 latency, and recent requests. Download the report for the full recorded run. Response bodies are limited to 2 KiB in web reports.
+6. Generate a payload preview, confirm authorization, and start the test. Stop cancels scheduling and in-flight client requests; a target server may still finish work it already received. Results include counts, failures, dropped arrivals, p95/p99 latency, and recent requests. Download the report for the full recorded run. Web response capture is limited to 2 KiB per request.
 7. Export/import a **Load Lab setup** to preserve configuration, payloads, datasets, and rules together. This bundled format is not a CLI config; its `config` object uses the existing CLI schema, with referenced JSON files contained in `files`. Credential-like headers are excluded by default; explicitly enable **Include credentials in setup export** when needed. Test payload data is still included. Setup and credential data are not saved in browser local storage; Balanced stores pane dimensions only. Failed imports preserve the current setup, and large formatted bundles are accepted up to 16 MiB while compact submissions remain limited to 8 MiB.
 
 External-link icons beside **Payload preview**, **Field rules**, and **Run results** open read-only analysis snapshots in separate tabs. They do not trigger requests or edit testing configuration. Results snapshots contain the latest 100 records; download the full report from the workspace. `/interface-options.html` offers three static interface mockups without replacing the current design or adding testing logic.
@@ -533,15 +533,20 @@ The file holds one entry per response plus a run summary:
 }
 ```
 
-JSON responses are embedded as JSON under `body`. Non-JSON responses, such as an HTML error page, are stored as text under `body_text`. Complete response bodies are recorded by default. To cap very large bodies, pass `-max-response-body` with a byte limit; truncated entries set `body_truncated` to `true` while `body_bytes` still reports the original size. Response files may contain sensitive data; store and share them accordingly.
+JSON responses are embedded as JSON under `body`. Non-JSON responses, such as an HTML error page, are stored as text under `body_text`. Transport captures at most 2 MiB per response by default; use `-max-transport-response-body` to change this limit, or `0` to discard response bodies. `-max-response-body` applies a separate per-record storage limit and cannot increase the transport capture limit. Web runs cap capture and report storage at 2 KiB per response. Truncated entries set `body_truncated`; `body_bytes` reports captured bytes, and `declared_body_bytes` reports the server's declared length when available. Response files may contain sensitive data; store and share them accordingly.
 
 ```powershell
-# Record complete bodies (default)
+# Record all captured body bytes (default; transport cap is 2 MiB)
 .\loadtest.exe -config .\configs\patient-import.json
 
 # Opt in to a 64 KiB per-body cap
 .\loadtest.exe -config .\configs\patient-import.json -max-response-body 65536
+
+# Also limit transport memory capture to 64 KiB per response
+.\loadtest.exe -config .\configs\patient-import.json -max-response-body 65536 -max-transport-response-body 65536
 ```
+
+Latency percentiles use a fixed-memory HDR histogram with approximately three significant digits. Values from 1 microsecond through one year are tracked; values above that range are capped.
 
 Example conservative progression:
 

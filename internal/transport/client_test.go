@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -29,6 +31,56 @@ func TestTransportReportsTruncation(t *testing.T) {
 	response := New(time.Second, 1, "").Do("GET", server.URL, nil, nil)
 	if response.Err != nil || !response.Truncated || len(response.Body) != 2<<20 {
 		t.Fatal("truncation was not surfaced", response.Err, response.Truncated, len(response.Body))
+	}
+}
+
+func TestTransportResponseBodyLimitIsConfigurable(t *testing.T) {
+	const limit = 32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(strings.Repeat("x", limit+10)))
+	}))
+	defer server.Close()
+
+	response := NewWithResponseLimit(time.Second, 1, "", limit).Do(http.MethodGet, server.URL, nil, nil)
+	if response.Err != nil || !response.Truncated || len(response.Body) != limit {
+		t.Fatalf("response = (err %v, truncated %t, body %d bytes), want (nil, true, %d bytes)", response.Err, response.Truncated, len(response.Body), limit)
+	}
+}
+
+func TestDoContextCancelsInFlightRequest(t *testing.T) {
+	started := make(chan struct{})
+	canceled := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-r.Context().Done()
+		close(canceled)
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	result := make(chan Response, 1)
+	go func() {
+		result <- New(time.Minute, 1, "").DoContext(ctx, http.MethodGet, server.URL, nil, nil)
+	}()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("request did not reach server")
+	}
+	cancel()
+	select {
+	case response := <-result:
+		if !errors.Is(response.Err, context.Canceled) {
+			t.Fatalf("DoContext error = %v, want context cancellation", response.Err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("in-flight request did not stop after cancellation")
+	}
+	select {
+	case <-canceled:
+	case <-time.After(time.Second):
+		t.Fatal("server did not observe request cancellation")
 	}
 }
 

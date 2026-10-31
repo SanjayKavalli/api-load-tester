@@ -1,20 +1,32 @@
 package transport
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 )
 
+const DefaultMaxResponseBodyBytes = 2 << 20
+
 type Client struct {
-	HTTP  *http.Client
-	Token string
+	HTTP                 *http.Client
+	Token                string
+	maxResponseBodyBytes int
 }
 
 func New(timeout time.Duration, maxInFlight int, token string) *Client {
+	return NewWithResponseLimit(timeout, maxInFlight, token, DefaultMaxResponseBodyBytes)
+}
+
+func NewWithResponseLimit(timeout time.Duration, maxInFlight int, token string, maxResponseBodyBytes int) *Client {
+	if maxResponseBodyBytes < 0 {
+		maxResponseBodyBytes = 0
+	}
 	return &Client{
-		Token: token,
+		Token:                token,
+		maxResponseBodyBytes: maxResponseBodyBytes,
 		HTTP: &http.Client{
 			Timeout:       timeout,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse },
@@ -39,8 +51,12 @@ type Response struct {
 }
 
 func (c *Client) Do(method, url string, headers map[string]string, body []byte) Response {
+	return c.DoContext(context.Background(), method, url, headers, body)
+}
+
+func (c *Client) DoContext(ctx context.Context, method, url string, headers map[string]string, body []byte) Response {
 	start := time.Now()
-	req, err := http.NewRequest(method, url, strings.NewReader(string(body)))
+	req, err := http.NewRequestWithContext(ctx, method, url, strings.NewReader(string(body)))
 	if err != nil {
 		return Response{Duration: time.Since(start), Err: err}
 	}
@@ -65,12 +81,10 @@ func (c *Client) Do(method, url string, headers map[string]string, body []byte) 
 	}
 	defer resp.Body.Close()
 
-	// Bound response memory usage to 2 MiB per response.
-	const limit = 2 << 20
-	responseBody, readErr := io.ReadAll(io.LimitReader(resp.Body, limit+1))
-	truncated := len(responseBody) > limit
+	responseBody, readErr := io.ReadAll(io.LimitReader(resp.Body, int64(c.maxResponseBodyBytes)+1))
+	truncated := len(responseBody) > c.maxResponseBodyBytes
 	if truncated {
-		responseBody = responseBody[:limit]
+		responseBody = responseBody[:c.maxResponseBodyBytes]
 	}
 
 	return Response{

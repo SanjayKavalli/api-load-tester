@@ -20,6 +20,8 @@ import (
 	"go-api-load-tester/internal/generator"
 )
 
+const maxWebResponseBodyBytes = 2 << 10
+
 //go:embed static/*
 var assets embed.FS
 
@@ -356,7 +358,7 @@ func (s *Server) run(w http.ResponseWriter, r *http.Request) {
 		defer os.RemoveAll(dir)
 		defer cancel()
 		output := filepath.Join(dir, "results")
-		err := engine.RunContext(ctx, cfg, false, false, output, 2048)
+		err := engine.RunContextWithBodyLimits(ctx, cfg, false, false, output, maxWebResponseBodyBytes, maxWebResponseBodyBytes)
 		var result json.RawMessage
 		files, _ := filepath.Glob(filepath.Join(output, "*.json"))
 		if len(files) > 0 {

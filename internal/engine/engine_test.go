@@ -38,6 +38,64 @@ func TestTransportTruncationIsVisibleInUnlimitedReport(t *testing.T) {
 	}
 }
 
+func TestRunWithBodyLimitsCapsResponseCapture(t *testing.T) {
+	const limit = 8
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(strings.Repeat("x", 100)))
+	}))
+	defer server.Close()
+
+	dir := t.TempDir()
+	cfg := &config.Config{Duration: "1s", Timeout: "1s", Rate: 1, BurstSize: 1, MaxInFlight: 1, ExecutionMode: "multi_api_burst", Scenarios: []config.Scenario{{Name: "bounded", Weight: 1, URL: server.URL, Method: "GET", BodyTemplate: map[string]any{}}}}
+	if err := RunContextWithBodyLimits(context.Background(), cfg, false, false, dir, 0, limit); err != nil {
+		t.Fatal(err)
+	}
+	paths, _ := filepath.Glob(filepath.Join(dir, "*.json"))
+	raw, _ := os.ReadFile(paths[0])
+	var result struct {
+		Responses []report.ResponseRecord `json:"responses"`
+	}
+	if err := json.Unmarshal(raw, &result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Responses) != 1 || !result.Responses[0].Truncated || result.Responses[0].BodyBytes != limit {
+		t.Fatalf("response = %#v, want one truncated %d-byte body", result.Responses, limit)
+	}
+}
+
+func TestRunContextCancelsInFlightRequest(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-release
+	}))
+	defer func() {
+		close(release)
+		server.Close()
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cfg := &config.Config{Duration: "10s", Timeout: "30s", Rate: 1, BurstSize: 1, MaxInFlight: 1, ExecutionMode: "multi_api_burst", BurstMode: "once", Scenarios: []config.Scenario{{Name: "cancel", Weight: 1, URL: server.URL, Method: "GET", BodyTemplate: map[string]any{}}}}
+	finished := make(chan error, 1)
+	go func() { finished <- RunContext(ctx, cfg, false, false, "", 0) }()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("request did not reach server")
+	}
+	cancel()
+	select {
+	case err := <-finished:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("run did not stop after cancellation")
+	}
+}
+
 func TestScenarioCycleIsOrdered(t *testing.T) {
 	cfg := &config.Config{BurstSize: 1, Scenarios: []config.Scenario{{Weight: 100, DatasetMode: "cycle", Dataset: []map[string]any{{"id": "A"}, {"id": "B"}, {"id": "C"}}}}}
 	index := 0

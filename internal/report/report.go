@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"time"
+
+	hdrhistogram "github.com/HdrHistogram/hdrhistogram-go"
 )
 
 type Item struct {
@@ -15,12 +17,15 @@ type Item struct {
 }
 
 type Stats struct {
-	Count     int
-	Failed    int
-	Network   int
-	Durations []time.Duration
-	Statuses  map[int]int
+	Count               int
+	Failed              int
+	Network             int
+	TotalDurationMicros uint64
+	latencies           *hdrhistogram.Histogram
+	Statuses            map[int]int
 }
+
+const maxTrackedLatencyMicros int64 = 365 * 24 * 60 * 60 * 1_000_000
 
 type ScenarioSummary struct {
 	Completed     int     `json:"completed"`
@@ -32,20 +37,33 @@ type ScenarioSummary struct {
 
 func (s *Stats) Snapshot() ScenarioSummary {
 	result := ScenarioSummary{Completed: s.Count, Failed: s.Failed, NetworkErrors: s.Network}
-	if len(s.Durations) > 0 {
-		result.P95Ms = percentile(s.Durations, 95)
-		result.P99Ms = percentile(s.Durations, 99)
+	if s.Count > 0 {
+		result.P95Ms = float64(s.latencies.ValueAtQuantile(95)) / 1000
+		result.P99Ms = float64(s.latencies.ValueAtQuantile(99)) / 1000
 	}
 	return result
 }
 
 func NewStats() *Stats {
-	return &Stats{Statuses: make(map[int]int)}
+	return &Stats{
+		Statuses:  make(map[int]int),
+		latencies: hdrhistogram.New(1, maxTrackedLatencyMicros, 3),
+	}
 }
 
 func (s *Stats) Add(item Item) {
 	s.Count++
-	s.Durations = append(s.Durations, item.Duration)
+	durationMicros := item.Duration.Microseconds()
+	if durationMicros < 1 {
+		durationMicros = 1
+	}
+	if durationMicros > maxTrackedLatencyMicros {
+		durationMicros = maxTrackedLatencyMicros
+	}
+	_ = s.latencies.RecordValue(durationMicros)
+	if item.Duration > 0 {
+		s.TotalDurationMicros += uint64(item.Duration.Microseconds())
+	}
 	if item.Err != nil {
 		s.Failed++
 		s.Network++
@@ -62,10 +80,10 @@ func (s *Stats) Print(title string) {
 	fmt.Println("Completed:", s.Count)
 	fmt.Println("Failed:", s.Failed)
 	fmt.Println("Network/request errors:", s.Network)
-	if len(s.Durations) > 0 {
-		fmt.Printf("Average latency: %.2f ms\n", average(s.Durations))
-		fmt.Printf("P95 latency: %.2f ms\n", percentile(s.Durations, 95))
-		fmt.Printf("P99 latency: %.2f ms\n", percentile(s.Durations, 99))
+	if s.Count > 0 {
+		fmt.Printf("Average latency: %.2f ms\n", float64(s.TotalDurationMicros)/1000/float64(s.Count))
+		fmt.Printf("P95 latency: %.2f ms\n", float64(s.latencies.ValueAtQuantile(95))/1000)
+		fmt.Printf("P99 latency: %.2f ms\n", float64(s.latencies.ValueAtQuantile(99))/1000)
 	}
 	fmt.Println("HTTP statuses:")
 	codes := make([]int, 0, len(s.Statuses))
@@ -79,25 +97,4 @@ func (s *Stats) Print(title string) {
 	for _, code := range codes {
 		fmt.Printf("  %d: %d\n", code, s.Statuses[code])
 	}
-}
-
-func average(values []time.Duration) float64 {
-	var total time.Duration
-	for _, v := range values {
-		total += v
-	}
-	return float64(total.Microseconds()) / 1000 / float64(len(values))
-}
-
-func percentile(values []time.Duration, p int) float64 {
-	copyValues := append([]time.Duration(nil), values...)
-	sort.Slice(copyValues, func(i, j int) bool { return copyValues[i] < copyValues[j] })
-	index := (p*len(copyValues)+99)/100 - 1
-	if index < 0 {
-		index = 0
-	}
-	if index >= len(copyValues) {
-		index = len(copyValues) - 1
-	}
-	return float64(copyValues[index].Microseconds()) / 1000
 }

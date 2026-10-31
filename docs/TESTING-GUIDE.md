@@ -442,15 +442,20 @@ The file holds one entry per response plus a run summary:
 }
 ```
 
-JSON responses are embedded as JSON under `body`. Non-JSON responses, such as an HTML error page, are stored as text under `body_text`. Complete response bodies are recorded by default. To cap very large bodies, pass `-max-response-body` with a byte limit; truncated entries set `body_truncated` to `true` while `body_bytes` still reports the original size. Response files may contain sensitive data; store and share them accordingly.
+JSON responses are embedded as JSON under `body`. Non-JSON responses, such as an HTML error page, are stored as text under `body_text`. Transport captures at most 2 MiB per response by default; use `-max-transport-response-body` to change this limit, or `0` to discard response bodies. `-max-response-body` applies a separate per-record storage limit and cannot increase the transport capture limit. Web runs cap capture and report storage at 2 KiB per response. Truncated entries set `body_truncated`; `body_bytes` reports captured bytes, and `declared_body_bytes` reports the server's declared length when available. Response files may contain sensitive data; store and share them accordingly.
 
 ```powershell
-# Record complete bodies (default)
+# Record all captured body bytes (default; transport cap is 2 MiB)
 .\loadtest.exe -config .\configs\patient-import.json
 
 # Opt in to a 64 KiB per-body cap
 .\loadtest.exe -config .\configs\patient-import.json -max-response-body 65536
+
+# Also limit transport memory capture to 64 KiB per response
+.\loadtest.exe -config .\configs\patient-import.json -max-response-body 65536 -max-transport-response-body 65536
 ```
+
+Latency percentiles use a fixed-memory HDR histogram with approximately three significant digits. Values from 1 microsecond through one year are tracked; values above that range are capped.
 
 Example conservative progression:
 

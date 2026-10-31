@@ -61,8 +61,8 @@ type Recorder struct {
 
 // NewRecorder creates dir if needed and opens responses_<timestamp>.json.
 //
-// maxBodyBytes caps how much of each response body is stored. Use zero or a
-// negative value to record every response body in full, which is the default.
+// maxBodyBytes caps how much of each captured response body is stored. Use
+// zero or a negative value to apply no additional recorder cap.
 func NewRecorder(dir string, startedAt time.Time, maxBodyBytes int) (*Recorder, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("create response directory: %w", err)

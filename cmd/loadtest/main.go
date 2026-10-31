@@ -9,6 +9,7 @@ import (
 
 	"go-api-load-tester/internal/config"
 	"go-api-load-tester/internal/engine"
+	"go-api-load-tester/internal/transport"
 )
 
 func main() {
@@ -24,7 +25,8 @@ func run() error {
 	logRequestBody := flag.Bool("log-request-body", true, "Log complete request bodies (may contain sensitive data)")
 	logResponseBody := flag.Bool("log-response-body", true, "Log response bodies (may contain sensitive data)")
 	responseDir := flag.String("response-dir", "responses", "Directory for the per-run response JSON file (empty disables recording)")
-	maxResponseBody := flag.Int("max-response-body", 0, "Bytes of each response body to record (0 records complete bodies)")
+	maxResponseBody := flag.Int("max-response-body", 0, "Maximum captured bytes stored per response record (0 adds no recorder cap)")
+	maxCapturedResponseBody := flag.Int("max-transport-response-body", transport.DefaultMaxResponseBodyBytes, "Maximum response bytes captured per request (0 disables body capture)")
 	flag.Parse()
 
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
@@ -41,7 +43,7 @@ func run() error {
 	}
 	slog.Info("configuration loaded", "scenario_count", len(cfg.Scenarios))
 
-	if err := engine.Run(cfg, *logRequestBody, *logResponseBody, *responseDir, *maxResponseBody); err != nil {
+	if err := engine.RunWithBodyLimits(cfg, *logRequestBody, *logResponseBody, *responseDir, *maxResponseBody, *maxCapturedResponseBody); err != nil {
 		return err
 	}
 	return nil

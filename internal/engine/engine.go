@@ -30,10 +30,21 @@ type scheduledRequest struct {
 }
 
 func Run(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir string, maxResponseBodyBytes int) error {
-	return RunContext(context.Background(), cfg, logRequestBody, logResponseBody, responseDir, maxResponseBodyBytes)
+	return RunWithBodyLimits(cfg, logRequestBody, logResponseBody, responseDir, maxResponseBodyBytes, transport.DefaultMaxResponseBodyBytes)
+}
+
+func RunWithBodyLimits(cfg *config.Config, logRequestBody, logResponseBody bool, responseDir string, maxRecordedResponseBodyBytes, maxCapturedResponseBodyBytes int) error {
+	return RunContextWithBodyLimits(context.Background(), cfg, logRequestBody, logResponseBody, responseDir, maxRecordedResponseBodyBytes, maxCapturedResponseBodyBytes)
 }
 
 func RunContext(ctx context.Context, cfg *config.Config, logRequestBody, logResponseBody bool, responseDir string, maxResponseBodyBytes int) error {
+	return RunContextWithBodyLimits(ctx, cfg, logRequestBody, logResponseBody, responseDir, maxResponseBodyBytes, transport.DefaultMaxResponseBodyBytes)
+}
+
+func RunContextWithBodyLimits(ctx context.Context, cfg *config.Config, logRequestBody, logResponseBody bool, responseDir string, maxRecordedResponseBodyBytes, maxCapturedResponseBodyBytes int) error {
+	if maxCapturedResponseBodyBytes < 0 {
+		return fmt.Errorf("max captured response body bytes must be non-negative")
+	}
 	multiBurst := cfg.ExecutionMode == "multi_api_burst"
 	if multiBurst && (len(cfg.Scenarios) == 0 || cfg.BurstSize > cfg.MaxInFlight/len(cfg.Scenarios)) {
 		return fmt.Errorf("max_inflight must cover the complete multi-API burst")
@@ -87,15 +98,15 @@ func RunContext(ctx context.Context, cfg *config.Config, logRequestBody, logResp
 	if cfg.DisableGlobalToken {
 		globalToken = ""
 	}
-	client := transport.New(timeout, cfg.MaxInFlight, globalToken)
+	client := transport.NewWithResponseLimit(timeout, cfg.MaxInFlight, globalToken, maxCapturedResponseBodyBytes)
 
 	var recorder *report.Recorder
 	if strings.TrimSpace(responseDir) != "" {
-		recorder, err = report.NewRecorder(responseDir, time.Now(), maxResponseBodyBytes)
+		recorder, err = report.NewRecorder(responseDir, time.Now(), maxRecordedResponseBodyBytes)
 		if err != nil {
 			return err
 		}
-		slog.Info("recording responses", "file", recorder.Path(), "max_response_body_bytes", maxResponseBodyBytes)
+		slog.Info("recording responses", "file", recorder.Path(), "max_recorded_response_body_bytes", maxRecordedResponseBodyBytes, "max_captured_response_body_bytes", maxCapturedResponseBodyBytes)
 	}
 
 	slog.Info("load test started",
@@ -256,7 +267,7 @@ func RunContext(ctx context.Context, cfg *config.Config, logRequestBody, logResp
 					}
 					requestStart := time.Now()
 					sentCount.Add(1)
-					resp := client.Do(s.Method, s.URL, s.Headers, body)
+					resp := client.DoContext(ctx, s.Method, s.URL, s.Headers, body)
 					expected := expectedStatus(resp.StatusCode, s.ExpectedStatuses, resp.Err)
 					var requestBody json.RawMessage
 					if cfg.RecordRequestBodies {
