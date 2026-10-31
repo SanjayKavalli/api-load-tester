@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Load Lab | Guided Demo</title>
+  <link rel="stylesheet" href="demo.css">
+  <script src="demo.js" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="DEMO.html">LOAD<span>LAB</span></a><span class="badge">SIMULATED DEMO</span><a href="USER-MANUAL.html">User manual</a></header>
+  <main>
+    <section class="intro"><h1>API testing workspace</h1><p>Dummy data only. No API requests, credentials, or Go server. Results are illustrative, not performance measurements.</p></section>
+    <aside class="guide" aria-label="Guided tour"><div><span id="step-count">STEP 1 OF 4</span><p id="instruction" role="status" aria-live="polite"></p></div><button id="restart" type="button" title="Restart this tour">Restart tour</button></aside>
+    <section class="band">
+      <label class="case-label" for="use-case">Use case</label>
+      <select id="use-case">
+        <optgroup label="Traffic modes">
+          <option value="normal">Normal / steady traffic</option>
+          <option value="burst">Burst / 100 simultaneous users</option>
+          <option value="multi_api_burst">Multi-API Burst / all APIs together</option>
+          <option value="weighted">Weighted / create 60%, update 40%</option>
+          <option value="coordinated">Coordinated / shared records</option>
+        </optgroup>
+        <optgroup label="Documented scenarios">
+          <option value="single-api-100-burst">Single API / 100-user burst</option>
+          <option value="weighted-create-update-60-40">Create / update 60:40</option>
+          <option value="100-users-one-record">100 users / one shared record</option>
+          <option value="100-users-many-records">100 users / many shared records</option>
+          <option value="coordinated-cycle-records">Coordinated / cycle records</option>
+          <option value="coordinated-three-roles-one-record">Three roles / one shared record</option>
+        </optgroup>
+      </select>
+      <h2>01 <span>Traffic profile</span></h2>
+      <div class="profiles" role="group" aria-label="Traffic profile">
+        <button type="button" data-mode="normal" aria-pressed="false"><b>Normal</b><small>Steady traffic</small></button>
+        <button type="button" data-mode="burst" aria-pressed="false"><b>Burst</b><small>Simultaneous users</small></button>
+        <button type="button" data-mode="multi_api_burst" aria-pressed="false"><b>Multi-API Burst</b><small>All APIs together</small></button>
+        <button type="button" data-mode="weighted" aria-pressed="false"><b>Weighted</b><small>Custom percentages</small></button>
+        <button type="button" data-mode="coordinated" aria-pressed="false"><b>Coordinated</b><small>Shared records</small></button>
+      </div>
+      <p id="case-description"></p>
+      <dl class="settings"><div><dt>Example users / group</dt><dd id="users"></dd></div><div><dt>APIs</dt><dd id="api-count"></dd></div><div><dt>Record selection</dt><dd id="record-mode"></dd></div><div><dt>Traffic</dt><dd id="traffic"></dd></div></dl>
+      <label id="schedule-field" hidden>Burst schedule <select id="schedule"><option value="once">Single burst</option><option value="repeat">Repeated bursts (2 groups, 1s apart)</option></select></label>
+      <canvas id="traffic-chart" width="960" height="100" role="img" aria-label="Illustrative traffic pattern"></canvas>
+    </section>
+    <section class="band">
+      <h2>02 <span>Dummy API scenarios</span></h2>
+      <div class="table-scroll"><table><thead><tr><th>API</th><th>Method / target</th><th>Allocation</th></tr></thead><tbody id="apis"></tbody></table></div>
+      <details><summary>Dummy dataset and field rules</summary><pre id="dataset"></pre><p id="rules"></p></details>
+      <div class="actions"><button id="preview" type="button" disabled>Generate payload preview</button><span id="preview-note"></span></div>
+      <pre id="payload" tabindex="0">Select the highlighted traffic option to begin.</pre>
+    </section>
+    <section class="band">
+      <h2>03 <span>Run console</span></h2>
+      <div class="actions"><button id="start" type="button" disabled>Start demo</button><button id="stop" type="button" disabled>Stop</button><button id="download" type="button" disabled>Download sample report</button><span id="run-state" role="status" aria-live="polite">Ready</span></div>
+      <progress id="progress" value="0" max="100" aria-label="Simulated run progress"></progress>
+      <dl class="metrics"><div><dt>Requests</dt><dd id="total">0</dd></div><div><dt>Successful</dt><dd id="success">0</dd></div><div><dt>Failed</dt><dd id="failed">0</dd></div><div><dt>p95 (dummy)</dt><dd id="p95">--</dd></div></dl>
+      <div class="table-scroll results"><table><thead><tr><th>Request</th><th>API</th><th>Status</th><th>Latency (dummy)</th></tr></thead><tbody id="records"><tr><td colspan="4">No simulated requests yet.</td></tr></tbody></table></div>
+      <div class="inspector"><section><h3>Sent request (dummy)</h3><pre id="request">Select a result to inspect its request.</pre></section><section><h3>Response (dummy)</h3><pre id="response">Select a result to inspect its response.</pre></section></div>
+    </section>
+    <footer><p>Simulation includes illustrative 409 conflicts. They do not prove a deadlock or predict real API behavior. Coordinated APIs are independent: no ordering or response chaining.</p><a id="scenario-doc" hidden>Read this scenario</a></footer>
+    <noscript>This guided demo requires JavaScript. The user manual is available without it.</noscript>
+  </main>
+</body>
+</html>

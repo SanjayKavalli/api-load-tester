@@ -4,7 +4,25 @@
 
 Read the [setup and testing guide](docs/TESTING-GUIDE.md) in this repository. The [HTML user manual](https://sanjaykavalli.github.io/api-load-tester/docs/USER-MANUAL.html) is hosted on GitHub Pages and may require access to the private site.
 
-GitHub Pages publishes documentation and configuration examples only; it does not host the interactive Go application. Run the browser interface locally using the steps below.
+GitHub Pages publishes documentation, configuration examples, and the simulated tour below; it does not host the Go application. Run the real browser interface locally using the steps below.
+
+## Guided Demo (No Installation)
+
+**[Open the interactive guided demo](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html)** without running Go or connecting to an API. Choose a use case, click the highlighted traffic option, generate a dummy payload preview, and click **Start demo**. Click a result to inspect its dummy request and response, or download the sample JSON report.
+
+| Traffic mode | Tour |
+| --- | --- |
+| Normal / steady traffic | [Start steady tour](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#normal) |
+| Burst / simultaneous users | [Start burst tour](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#burst) |
+| Multi-API Burst / single or repeated groups | [Start multi-API tour](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#multi_api_burst) |
+| Weighted / custom percentages | [Start weighted tour](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#weighted) |
+| Coordinated / shared records | [Start coordinated tour](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#coordinated) |
+
+Scenario tours: [single API, 100 users](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#single-api-100-burst), [create/update 60:40](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#weighted-create-update-60-40), [100 users, one record](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#100-users-one-record), [100 users, many records](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#100-users-many-records), [cycle records](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#coordinated-cycle-records), and [three roles, one record](https://sanjaykavalli.github.io/api-load-tester/docs/DEMO.html#coordinated-three-roles-one-record).
+
+Everything in the demo is simulated: dummy `.invalid` endpoints, synthetic patient data, canned responses, and illustrative latency/conflict results. It sends no API requests and does not execute the Go load-test engine. Real testing still requires the local application and authorized targets.
+
+GitHub Pages publishes this tour with the documentation after changes are pushed to `main` and the Pages workflow succeeds. Private Pages sites may require access. For an offline tour, open [docs/DEMO.html](docs/DEMO.html) from a local checkout with its neighboring CSS and JavaScript files; GitHub's source view does not execute HTML.
 
 ## Browser Interface
 
